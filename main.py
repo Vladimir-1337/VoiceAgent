@@ -919,7 +919,7 @@ def main():
         print("\r  ⚠️ Поддержка: ОФФЛАЙН (программа работает)   ")
     
     # Проверка обновлений + автообновление (Блок 6.1)
-    LOCAL_VERSION = "1.0.1"
+    LOCAL_VERSION = "1.0.2"
     update_available = False
     print("  ⏳ Обновления — проверяем...", end="", flush=True)
     try:
@@ -941,7 +941,10 @@ def main():
     
     # Блок 6.2-6.3: Предложение обновиться
     if update_available:
-        print("\n  Обновить программу?")
+        print(f"\n  {'='*50}")
+        print(f"  \u26a0\ufe0f ДОСТУПНА НОВАЯ ВЕРСИЯ: {remote_version}!")
+        print(f"  Обновление настоятельно рекомендуется.")
+        print(f"  {'='*50}")
         print("    1 — Да, обновить сейчас")
         print("    0 — Нет, позже")
         choice = input("  > ").strip()
