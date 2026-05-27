@@ -87,7 +87,7 @@ for root, dirs, files in os.walk(tmp_dir):
             # Не перезаписываем настройки пользователя
             if fname == "config.py" and backup:
                 continue
-            shutil.copy2(src, dst)
+            shutil.copy(src, dst)
 
 # Восстанавливаем настройки пользователя
 if backup:
