@@ -919,7 +919,7 @@ def main():
         print("\r  ⚠️ Поддержка: ОФФЛАЙН (программа работает)   ")
     
     # Проверка обновлений + автообновление (Блок 6.1)
-    LOCAL_VERSION = "1.0.2"
+    LOCAL_VERSION = "1.0.3"
     update_available = False
     print("  ⏳ Обновления — проверяем...", end="", flush=True)
     try:
@@ -939,53 +939,29 @@ def main():
     except:
         print(f"\r  ⚠️ Не удалось проверить обновления       ")
     
-    # Блок 6.2-6.3: Предложение обновиться
+    # Автообновление: молча, без вопроса
     if update_available:
         print(f"\n  {'='*50}")
-        print(f"  \u26a0\ufe0f ДОСТУПНА НОВАЯ ВЕРСИЯ: {remote_version}!")
-        print(f"  Обновление настоятельно рекомендуется.")
-        print(f"  {'='*50}")
-        print("    1 — Да, обновить сейчас")
-        print("    0 — Нет, позже")
-        choice = input("  > ").strip()
-        if choice == "1":
-            print("  ⏳ Скачиваю обновление...", end="", flush=True)
-            try:
-                import zipfile, shutil
-                zip_path = "/storage/emulated/0/Download/VoiceAgent_update.zip"
-                r = requests.get("https://github.com/Vladimir-1337/VoiceAgent/archive/refs/heads/main.zip")
-                with open(zip_path, "wb") as f:
-                    f.write(r.content)
-                
-                # Распаковываем во временную папку
-                tmp_dir = "/storage/emulated/0/Download/VoiceAgent_tmp_update/"
-                with zipfile.ZipFile(zip_path, "r") as zf:
-                    zf.extractall(tmp_dir)
-                
-                # Копируем файлы, НЕ перезаписывая config.py
-                for root, dirs, files in os.walk(tmp_dir):
-                    for fname in files:
-                        if fname == "config.py":
-                            continue  # Блок 6.5: защита настроек
-                        src = os.path.join(root, fname)
-                        dst = os.path.join("/storage/emulated/0/VoiceAgent/", fname)
-                        shutil.copy2(src, dst)
-                
-                # Чистим
-                shutil.rmtree(tmp_dir, ignore_errors=True)
-                os.remove(zip_path)
-                
-                # Обновляем локальную версию
+        print(f"  \u26a0\ufe0f Новая версия: {remote_version}. Обновляю...")
+        try:
+            # Качаем свежий main.py
+            r_main = requests.get(
+                "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/main.py",
+                timeout=10
+            )
+            if r_main.status_code == 200:
+                with open("/storage/emulated/0/VoiceAgent/main.py", "w", encoding="utf-8") as f:
+                    f.write(r_main.text)
+                # Обновляем локальный version.txt чтобы больше не предлагать
                 with open("/storage/emulated/0/VoiceAgent/version.txt", "w") as f:
                     f.write(remote_version)
-                
-                print(f"\r  ✅ Обновлено до версии {remote_version}!   ")
-                print("  Перезапустите программу.")
-                print("\n  Нажмите Enter для выхода...")
+                print(f"  \u2705 Обновлено до {remote_version}. Перезапустите.")
+                print(f"  {'='*50}")
+                print("\n  Нажмите Enter чтобы перезапустить...")
                 input()
                 return
-            except:
-                print(f"\r  ⚠️ Не удалось обновить. Попробуйте позже.   ")
+        except:
+            print(f"  \u26a0\ufe0f Не удалось обновить. Продолжаю на старой версии.")
     
     need_register = (
         voice_config.YANDEX_APP_PASSWORD == "введите_пароль_приложения" or
