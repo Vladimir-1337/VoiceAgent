@@ -919,7 +919,7 @@ def main():
         print("\r  ⚠️ Поддержка: ОФФЛАЙН (программа работает)   ")
     
 
-    # Обновление v1.0.6 — один раз, молча, без повторов
+    # Обновление v1.0.7 — один раз, молча, без повторов
     try:
         r_ver = requests.get(
             "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt",
@@ -927,7 +927,16 @@ def main():
         )
         if r_ver.status_code == 200:
             remote_version = r_ver.text.strip()
-            if remote_version != LOCAL_VERSION:
+            # Сравниваем как числа, а не как строки
+            try:
+                local_num = float(LOCAL_VERSION)
+                remote_num = float(remote_version)
+            except:
+                local_num = 0
+                remote_num = 0
+            
+            if remote_num > local_num:
+                print(f"\n  ⚠️ Новая версия: {remote_version}. Обновляю...")
                 r_main = requests.get(
                     "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/main.py",
                     timeout=10
@@ -937,7 +946,7 @@ def main():
                         f.write(r_main.text)
                     with open("/storage/emulated/0/VoiceAgent/version.txt", "w") as f:
                         f.write(remote_version)
-                    print(f"\r  ✅ Обновлено до {remote_version}. Перезапустите.          ")
+                    print(f"  ✅ Обновлено до {remote_version}. Перезапустите.")
                     input("\n  Нажмите Enter...")
                     return
             else:
