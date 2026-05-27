@@ -918,7 +918,8 @@ def main():
     if not support_ok:
         print("\r  ⚠️ Поддержка: ОФФЛАЙН (программа работает)   ")
     
-    # Проверка обновлений — v1.0.5: НИКОГДА НЕ ПЕРЕСПРАШИВАЕТ
+
+    # Обновление v1.0.6 — один раз, молча, без повторов
     try:
         r_ver = requests.get(
             "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt",
@@ -927,7 +928,6 @@ def main():
         if r_ver.status_code == 200:
             remote_version = r_ver.text.strip()
             if remote_version != LOCAL_VERSION:
-                # Скачиваем свежий main.py и version.txt МОЛЧА
                 r_main = requests.get(
                     "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/main.py",
                     timeout=10
@@ -938,12 +938,12 @@ def main():
                     with open("/storage/emulated/0/VoiceAgent/version.txt", "w") as f:
                         f.write(remote_version)
                     print(f"\r  ✅ Обновлено до {remote_version}. Перезапустите.          ")
-                    input("\n  Нажмите Enter для перезапуска...")
+                    input("\n  Нажмите Enter...")
                     return
             else:
                 print(f"\r  ✅ Версия {LOCAL_VERSION} — актуальна      ")
     except:
-        pass  # Молча пропускаем, если нет интернета
+        pass
     
     need_register = (
         voice_config.YANDEX_APP_PASSWORD == "введите_пароль_приложения" or
