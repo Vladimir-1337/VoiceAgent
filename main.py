@@ -918,50 +918,43 @@ def main():
     if not support_ok:
         print("\r  ⚠️ Поддержка: ОФФЛАЙН (программа работает)   ")
     
-    # Проверка обновлений + автообновление (Блок 6.1)
-    LOCAL_VERSION = "1.0.3"
+    # Проверка обновлений (молча, без повторов)
     update_available = False
-    print("  ⏳ Обновления — проверяем...", end="", flush=True)
     try:
-        r = requests.get(
+        r_ver = requests.get(
             "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt",
             timeout=5
         )
-        if r.status_code == 200:
-            remote_version = r.text.strip()
+        if r_ver.status_code == 200:
+            remote_version = r_ver.text.strip()
             if remote_version != LOCAL_VERSION:
-                print(f"\r  🆕 Доступна новая версия: {remote_version}   ")
-                update_available = True
+                print(f"\n  {'='*50}")
+                print(f"  \u26a0\ufe0f Новая версия: {remote_version}. Обновляю...")
+                # Качаем свежий main.py
+                r_main = requests.get(
+                    "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/main.py",
+                    timeout=10
+                )
+                if r_main.status_code == 200:
+                    with open("/storage/emulated/0/VoiceAgent/main.py", "w", encoding="utf-8") as f:
+                        f.write(r_main.text)
+                    # Фиксируем версию
+                    with open("/storage/emulated/0/VoiceAgent/version.txt", "w") as f:
+                        f.write(remote_version)
+                    print(f"  \u2705 Обновлено до {remote_version}. Перезапустите.")
+                    print(f"  {'='*50}")
+                    input("\n  Нажмите Enter для перезапуска...")
+                    return
+                else:
+                    print(f"  \u26a0\ufe0f Не удалось скачать обновление.")
             else:
-                print(f"\r  ✅ Версия {LOCAL_VERSION} — актуальна      ")
+                print(f"\r  \u2705 Версия {LOCAL_VERSION} — актуальна      ")
         else:
-            print(f"\r  ⚠️ Не удалось проверить обновления       ")
+            print(f"\r  \u26a0\ufe0f Не удалось проверить обновления       ")
     except:
-        print(f"\r  ⚠️ Не удалось проверить обновления       ")
-    
-    # Автообновление: молча, без вопроса
-    if update_available:
-        print(f"\n  {'='*50}")
-        print(f"  \u26a0\ufe0f Новая версия: {remote_version}. Обновляю...")
-        try:
-            # Качаем свежий main.py
-            r_main = requests.get(
-                "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/main.py",
-                timeout=10
-            )
-            if r_main.status_code == 200:
-                with open("/storage/emulated/0/VoiceAgent/main.py", "w", encoding="utf-8") as f:
-                    f.write(r_main.text)
-                # Обновляем локальный version.txt чтобы больше не предлагать
-                with open("/storage/emulated/0/VoiceAgent/version.txt", "w") as f:
-                    f.write(remote_version)
-                print(f"  \u2705 Обновлено до {remote_version}. Перезапустите.")
-                print(f"  {'='*50}")
-                print("\n  Нажмите Enter чтобы перезапустить...")
-                input()
-                return
-        except:
-            print(f"  \u26a0\ufe0f Не удалось обновить. Продолжаю на старой версии.")
+        print(f"\r  \u26a0\ufe0f Не удалось проверить обновления       ")
+
+    # Если обновление не удалось — просто едем дальше, без вопросов
     
     need_register = (
         voice_config.YANDEX_APP_PASSWORD == "введите_пароль_приложения" or
