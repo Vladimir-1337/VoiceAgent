@@ -1,78 +1,58 @@
-# install_organizer.py - УСТАНОВЩИК ОРГАНАЙЗЕРА (для чайников)
-# ЧТО ДЕЛАТЬ: открой этот файл в Pydroid и нажми Run ▶
-# ОН САМ всё скачает, распакует и установит. Ты просто жди.
-# После установки открой main.py в папке VoiceAgent и нажми Run.
-
+# install_organizer.py — УСТАНОВЩИК ОРГАНАЙЗЕРА (ИСПРАВЛЕННЫЙ)
 import requests, os, zipfile, shutil, sys, subprocess
 
 print("=" * 60)
 print("  УСТАНОВЩИК ОРГАНАЙЗЕРА")
-print("  Сейчас программа сама всё установит. Просто жди.")
 print("=" * 60)
 
 TARGET_DIR = "/storage/emulated/0/VoiceAgent"
 GITHUB_URL = "https://github.com/Vladimir-1337/VoiceAgent/archive/refs/heads/main.zip"
 
-# -------------------------------------------------------
-# ШАГ 1 из 6: проверяем библиотеки
-# -------------------------------------------------------
-print("\n[1/6] Проверяю библиотеки (нужны для скачивания)...")
+# Шаг 1
+print("\n[1/6] Проверяю библиотеки...")
 try:
     import requests
-    print("  OK - все на месте")
+    print("  OK")
 except ImportError:
-    print("  Скачиваю недостающую библиотеку...")
+    print("  Устанавливаю...")
     subprocess.check_call([sys.executable, "-m", "pip", "install", "requests", "-q"])
     import requests
-    print("  OK - библиотека установлена")
+    print("  OK")
 
-# -------------------------------------------------------
-# ШАГ 2 из 6: проверяем интернет
-# -------------------------------------------------------
-print("\n[2/6] Проверяю интернет (нужен для скачивания)...")
+# Шаг 2
+print("\n[2/6] Проверяю интернет...")
 try:
     requests.get("https://github.com", timeout=5)
-    print("  OK - интернет работает")
+    print("  OK")
 except:
     print("  ОШИБКА: Нет интернета.")
-    print("  Включите Wi-Fi или мобильные данные и перезапустите программу.")
-    input("\nНажмите Enter чтобы выйти...")
     exit()
 
-# -------------------------------------------------------
-# ШАГ 3 из 6: скачиваем архив
-# -------------------------------------------------------
-print("\n[3/6] Скачиваю архив с программой...")
+# Шаг 3
+print("\n[3/6] Скачиваю архив...")
 zip_path = "/storage/emulated/0/Download/VoiceAgent_install.zip"
 r = requests.get(GITHUB_URL)
 with open(zip_path, "wb") as f:
     f.write(r.content)
-print(f"  OK - скачано {len(r.content)//1024} КБ")
+print(f"  OK ({len(r.content)//1024} КБ)")
 
-# -------------------------------------------------------
-# ШАГ 4 из 6: распаковываем
-# -------------------------------------------------------
-print("\n[4/6] Распаковываю архив...")
+# Шаг 4
+print("\n[4/6] Распаковываю...")
 tmp_dir = "/storage/emulated/0/Download/VoiceAgent_tmp/"
 with zipfile.ZipFile(zip_path, "r") as zf:
     zf.extractall(tmp_dir)
-print("  OK - архив распакован")
+print("  OK")
 
-# -------------------------------------------------------
-# ШАГ 5 из 6: копируем файлы
-# -------------------------------------------------------
-print("\n[5/6] Устанавливаю файлы в папку VoiceAgent...")
+# Шаг 5
+print("\n[5/6] Устанавливаю файлы...")
 os.makedirs(TARGET_DIR, exist_ok=True)
 
-# Сохраняем старый config.py если есть
 old_config = os.path.join(TARGET_DIR, "config.py")
 backup = None
 if os.path.exists(old_config):
-    print("  Нашёл ваш старый config.py - сохраняю настройки.")
     with open(old_config, "r") as f:
         backup = f.read()
 
-# Копируем файлы (используем read/write вместо shutil.copy для обхода ошибки прав)
 for root, dirs, files in os.walk(tmp_dir):
     for fname in files:
         if fname.endswith((".py", ".json", ".txt", ".md")):
@@ -80,50 +60,35 @@ for root, dirs, files in os.walk(tmp_dir):
             dst = os.path.join(TARGET_DIR, fname)
             if fname == "config.py" and backup:
                 continue
+            # ИСПРАВЛЕНИЕ: используем простое чтение/запись вместо shutil.copy2
             try:
                 with open(src, "r", encoding="utf-8") as fsrc:
                     content = fsrc.read()
                 with open(dst, "w", encoding="utf-8") as fdst:
                     fdst.write(content)
             except:
-                pass  # бинарные файлы пропускаем
+                pass
 
-# Восстанавливаем настройки
 if backup:
     with open(old_config, "w") as f:
         f.write(backup)
-    print("  Ваши настройки сохранены.")
 
-# Создаём заглушку voice_config.py
 vcp = os.path.join(TARGET_DIR, "voice_config.py")
 if not os.path.exists(vcp):
     with open(vcp, "w") as f:
-        f.write("# voice_config.py - вспомогательный файл\nfrom config import *\n")
+        f.write("# voice_config.py - stub\nfrom config import *\n")
 
-# Создаём папку для записей
 os.makedirs("/storage/emulated/0/Recordings/", exist_ok=True)
-print("  OK - все файлы на своих местах")
+print("  OK")
 
-# -------------------------------------------------------
-# ШАГ 6 из 6: очистка
-# -------------------------------------------------------
-print("\n[6/6] Убираю временные файлы...")
+# Шаг 6
+print("\n[6/6] Очищаю...")
 shutil.rmtree(tmp_dir, ignore_errors=True)
 os.remove(zip_path)
-print("  OK - чисто")
+print("  OK")
 
-# -------------------------------------------------------
-# ГОТОВО!
-# -------------------------------------------------------
 print(f"\n{'='*60}")
 print("  ОРГАНАЙЗЕР УСТАНОВЛЕН!")
-print(f"\n  Что делать дальше:")
-print(f"  1. Откройте Pydroid")
-print(f"  2. Нажмите на иконку папки (Открыть)")
-print(f"  3. Зайдите в папку VoiceAgent")
-print(f"  4. Выберите файл main.py")
-print(f"  5. Нажмите Run (треугольник внизу)")
-print(f"\n  При первом запуске программа попросит ввести")
-print(f"  логин и пароль приложения Яндекс.Календарь.")
+print(f"  Откройте Pydroid -> {TARGET_DIR}/main.py -> Run")
 print(f"{'='*60}")
-input("\nНажмите Enter чтобы выйти...")
+input("\nНажмите Enter...")
