@@ -919,36 +919,38 @@ def main():
         print("\r  ⚠️ Поддержка: ОФФЛАЙН (программа работает)   ")
     
 
-    # Обновление v1.0.7 — один раз, молча, без повторов
+    # Обновление v1.0.9 — Надёжное, без raw-ссылок, без повторов
     try:
         r_ver = requests.get(
-            "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt",
+            "https://github.com/Vladimir-1337/VoiceAgent/blob/main/version.txt",
             timeout=5
         )
         if r_ver.status_code == 200:
-            remote_version = r_ver.text.strip()
-            # Сравниваем как числа, а не как строки
-            try:
-                local_num = float(LOCAL_VERSION)
-                remote_num = float(remote_version)
-            except:
-                local_num = 0
-                remote_num = 0
-            
-            if remote_num > local_num:
-                print(f"\n  ⚠️ Новая версия: {remote_version}. Обновляю...")
-                r_main = requests.get(
-                    "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/main.py",
-                    timeout=10
-                )
-                if r_main.status_code == 200:
-                    with open("/storage/emulated/0/VoiceAgent/main.py", "w", encoding="utf-8") as f:
-                        f.write(r_main.text)
-                    with open("/storage/emulated/0/VoiceAgent/version.txt", "w") as f:
-                        f.write(remote_version)
-                    print(f"  ✅ Обновлено до {remote_version}. Перезапустите.")
-                    input("\n  Нажмите Enter...")
-                    return
+            # Извлекаем версию из HTML (страница GitHub)
+            import re as _re
+            match = _re.search(r'<td[^>]*>(\d+\.\d+\.\d+)</td>', r_ver.text)
+            if match:
+                remote_version = match.group(1)
+                if remote_version != LOCAL_VERSION:
+                    print(f"\n  ⚠️ Новая версия: {remote_version}. Обновляю...")
+                    # Качаем main.py через обычную ссылку GitHub
+                    r_main = requests.get(
+                        "https://github.com/Vladimir-1337/VoiceAgent/blob/main/main.py",
+                        timeout=10
+                    )
+                    if r_main.status_code == 200:
+                        # Извлекаем код из HTML
+                        import re as _re2
+                        code_match = _re2.search(r'<table[^>]*>.*?<td[^>]*>(.*?)</td>', r_main.text, _re.DOTALL)
+                        if code_match:
+                            new_code = code_match.group(1).replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&')
+                            with open("/storage/emulated/0/VoiceAgent/main.py", "w", encoding="utf-8") as f:
+                                f.write(new_code)
+                            with open("/storage/emulated/0/VoiceAgent/version.txt", "w") as f:
+                                f.write(remote_version)
+                            print(f"  ✅ Обновлено до {remote_version}. Перезапустите.")
+                            input("\n  Нажмите Enter...")
+                            return
             else:
                 print(f"\r  ✅ Версия {LOCAL_VERSION} — актуальна      ")
     except:
