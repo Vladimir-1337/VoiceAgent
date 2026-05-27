@@ -349,7 +349,7 @@ def main_menu():
                         print("  ℹ️  Enter — выход")
                         print("-" * 50)
                     
-                    elif key == "0" and all_tasks and task_index >= 0:
+                    elif key == "0":  # хотфикс 1.0.1: поддержка без задач
                         clear_screen()
                         print_header("Жалоба на задачу")
                         print(f"  📋 Задача: {all_tasks[task_index]['title'][:60]}")
@@ -919,7 +919,7 @@ def main():
         print("\r  ⚠️ Поддержка: ОФФЛАЙН (программа работает)   ")
     
     # Проверка обновлений + автообновление (Блок 6.1)
-    LOCAL_VERSION = "1.0"
+    LOCAL_VERSION = "1.0.1"
     update_available = False
     print("  ⏳ Обновления — проверяем...", end="", flush=True)
     try:
