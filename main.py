@@ -251,8 +251,9 @@ def main_menu():
             print("    👥 Якорные люди: контакты из профиля")
             print("    📊 Лог мониторинга (monitor.log)")
             print("    📅 События из Яндекс.Календаря")
-            print("    🎙️ Все аудиозаписи из папки Recordings")
             print("    📁 Все временные и служебные файлы")
+            print("")
+            print("  ⚠️ Аудиозаписи HE удаляются.")
             print("-" * 50)
             print("  1 = Да, удалить всё")
             print("  0 = Нет, отмена")
@@ -286,16 +287,8 @@ def main_menu():
                 with open(profile_path, "w", encoding="utf-8") as f:
                     json.dump(empty_profile, f, indent=2)
                 
-                rec_dir = "/storage/emulated/0/Recordings/"
-                if os.path.exists(rec_dir):
-                    for f in os.listdir(rec_dir):
-                        if f.endswith(".m4a") or f.endswith(".done"):
-                            try:
-                                os.remove(os.path.join(rec_dir, f))
-                            except OSError:
-                                pass
-                
                 print("  ✅ ВСЕ данные удалены, включая якоря.")
+                print("  🎙️ Аудиозаписи сохранены.")
             else:
                 print("  ❌ Очистка отменена.")
 
@@ -313,6 +306,7 @@ def main_menu():
             print("-" * 50)
             print("  ◄ 1 / 2 ►  — переключение между задачами")
             print("  📝 0 — пожаловаться на выбранную задачу")
+            print("  🗑️ 3 — очистить лог")
             print("  ℹ️  Enter — выход")
             print("-" * 50)
 
@@ -334,8 +328,28 @@ def main_menu():
                         task_index = min(len(all_tasks) - 1, task_index + 1)
                         _show_task_detail(all_tasks, task_index, log_file)
                     
+                    elif key == "3":
+                        if os.path.exists(log_file):
+                            with open(log_file, "w") as f:
+                                f.write("")
+                            last_size = 0
+                            all_tasks = []
+                            task_index = -1
+                        print("\n  🗑️ Лог очищен!")
+                        print("  Нажмите Enter...")
+                        input()
+                        clear_screen()
+                        print_header("Мониторинг · Реальное время")
+                        print("  ✅ Мониторинг активен")
+                        print("  🔄 Обновление каждые 3 сек")
+                        print("-" * 50)
+                        print("  ◄ 1 / 2 ►  — переключение между задачами")
+                        print("  📝 0 — пожаловаться на выбранную задачу")
+                        print("  🗑️ 3 — очистить лог")
+                        print("  ℹ️  Enter — выход")
+                        print("-" * 50)
+                    
                     elif key == "0" and all_tasks and task_index >= 0:
-                        # Двухэтапное подтверждение
                         clear_screen()
                         print_header("Жалоба на задачу")
                         print(f"  📋 Задача: {all_tasks[task_index]['title'][:60]}")
@@ -358,6 +372,7 @@ def main_menu():
                             print("-" * 50)
                             print("  ◄ 1 / 2 ►  — переключение между задачами")
                             print("  📝 0 — пожаловаться на выбранную задачу")
+                            print("  🗑️ 3 — очистить лог")
                             print("  ℹ️  Enter — выход")
                             print("-" * 50)
                         elif confirm == "2":
@@ -371,9 +386,9 @@ def main_menu():
                             print("-" * 50)
                             print("  ◄ 1 / 2 ►  — переключение между задачами")
                             print("  📝 0 — пожаловаться на выбранную задачу")
+                            print("  🗑️ 3 — очистить лог")
                             print("  ℹ️  Enter — выход")
                             print("-" * 50)
-                        # 0 — просто возврат
                 
                 current_size = os.path.getsize(log_file) if os.path.exists(log_file) else 0
                 
@@ -418,7 +433,7 @@ def main_menu():
                         print("-" * 50)
                         if all_tasks and task_index >= 0:
                             print(f"  📌 Задача {task_index+1}/{len(all_tasks)}: {all_tasks[task_index]['title'][:50]}")
-                        print("  ◄ 1 / 2 ►  |  0 — пожаловаться  |  Enter — выход")
+                        print("  ◄ 1 / 2 ►  |  0 — пожаловаться  |  3 — очистить лог  |  Enter — выход")
                         
                     except:
                         pass
@@ -628,6 +643,59 @@ def background_monitor():
         time.sleep(3)
 
 
+
+
+def bridge_all_recorders():
+    """
+    Универсальный мост: копирует аудио из ВСЕХ известных папок диктофонов
+    в Recordings. Поддерживает Xiaomi, Samsung, Huawei, Realme, OPPO, Vivo, Pixel.
+    Не удаляет оригиналы.
+    """
+    import shutil as _shutil
+    
+    # Все известные папки диктофонов на Android
+    recorder_dirs = [
+        # Xiaomi
+        "/storage/emulated/0/MIUI/sound_recorder/",
+        "/storage/emulated/0/Recorder/",
+        # Samsung
+        "/storage/emulated/0/Sounds/",
+        "/storage/emulated/0/Voice Recorder/",
+        "/storage/emulated/0/ Samsung/Voice Recorder/",
+        # Huawei
+        "/storage/emulated/0/record/",
+        "/storage/emulated/0/Huawei/Recorder/",
+        # Realme / OPPO
+        "/storage/emulated/0/Music/Recordings/",
+        "/storage/emulated/0/ColorOS/Recorder/",
+        # Vivo
+        "/storage/emulated/0/Vivo/Recorder/",
+        # Pixel / Stock Android
+        "/storage/emulated/0/DCIM/Voice/",
+        "/storage/emulated/0/Music/Sound Records/",
+        # Универсальные
+        "/storage/emulated/0/Download/",
+        "/storage/emulated/0/Recordings/",
+    ]
+    
+    target_dir = "/storage/emulated/0/Recordings/"
+    os.makedirs(target_dir, exist_ok=True)
+    
+    for src_dir in recorder_dirs:
+        if not os.path.exists(src_dir) or src_dir == target_dir:
+            continue
+        try:
+            for fname in os.listdir(src_dir):
+                if fname.endswith((".m4a", ".mp3", ".aac", ".amr", ".wav", ".ogg", ".wma", ".flac")):
+                    src = os.path.join(src_dir, fname)
+                    dst = os.path.join(target_dir, fname)
+                    if not os.path.exists(dst):
+                        _shutil.copy2(src, dst)
+        except:
+            pass
+
+
+
 # ======================================================================
 # РЕГИСТРАЦИЯ
 # ======================================================================
@@ -744,6 +812,7 @@ def check_registration():
 
 
 
+
 def main():
     import time as _time
     clear_screen()
@@ -761,6 +830,21 @@ def main():
         except:
             pass
     print("  ✅ Папка Recordings" if os.path.exists(rec_dir) else "  ❌ Папка Recordings")
+    
+    # Проверка библиотек
+    print("  ⏳ Библиотеки — проверяем...", end="", flush=True)
+    try:
+        import requests
+        print(f"\r  ✅ Библиотеки готовы              ")
+    except ImportError:
+        print(f"\r  ⏳ Устанавливаю requests...", end="", flush=True)
+        import subprocess, sys
+        try:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "requests", "-q"])
+            import requests
+            print(f"\r  ✅ Библиотеки готовы              ")
+        except:
+            print(f"\r  ⚠️ requests не установлен (нет интернета?)")
     
     # VPS Whisper
     print("  ⏳ VPS — проверяем...", end="", flush=True)
@@ -818,23 +902,87 @@ def main():
     if not cal_ok:
         print("\r  ⚠️ Календарь не отвечает после 5 попыток   ")
     
-    # Служба поддержки (порт 8200)
+    # Служба поддержки
     print("  ⏳ Поддержка — проверяем...", end="", flush=True)
     support_ok = False
     for attempt in range(3):
         try:
-            import requests
-            r = requests.post("http://157.22.202.232:8200/report", 
-                            data="ping", timeout=5)
+            r = requests.post("http://157.22.202.232:8200/report", data="ping", timeout=5)
             if r.status_code in (200, 500):
                 support_ok = True
-                print(f"\r  ✅ Поддержка из режима 5(кнопка 0 - пожаловаться): В СЕТИ(попытка {attempt+1})   ")
+                print(f"\r  ✅ Поддержка: В СЕТИ (попытка {attempt+1})   ")
                 break
         except:
             print(f"\r  ⏳ Поддержка — попытка {attempt+1}/3...", end="", flush=True)
             _time.sleep(1)
     if not support_ok:
         print("\r  ⚠️ Поддержка: ОФФЛАЙН (программа работает)   ")
+    
+    # Проверка обновлений + автообновление (Блок 6.1)
+    LOCAL_VERSION = "1.0"
+    update_available = False
+    print("  ⏳ Обновления — проверяем...", end="", flush=True)
+    try:
+        r = requests.get(
+            "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt",
+            timeout=5
+        )
+        if r.status_code == 200:
+            remote_version = r.text.strip()
+            if remote_version != LOCAL_VERSION:
+                print(f"\r  🆕 Доступна новая версия: {remote_version}   ")
+                update_available = True
+            else:
+                print(f"\r  ✅ Версия {LOCAL_VERSION} — актуальна      ")
+        else:
+            print(f"\r  ⚠️ Не удалось проверить обновления       ")
+    except:
+        print(f"\r  ⚠️ Не удалось проверить обновления       ")
+    
+    # Блок 6.2-6.3: Предложение обновиться
+    if update_available:
+        print("\n  Обновить программу?")
+        print("    1 — Да, обновить сейчас")
+        print("    0 — Нет, позже")
+        choice = input("  > ").strip()
+        if choice == "1":
+            print("  ⏳ Скачиваю обновление...", end="", flush=True)
+            try:
+                import zipfile, shutil
+                zip_path = "/storage/emulated/0/Download/VoiceAgent_update.zip"
+                r = requests.get("https://github.com/Vladimir-1337/VoiceAgent/archive/refs/heads/main.zip")
+                with open(zip_path, "wb") as f:
+                    f.write(r.content)
+                
+                # Распаковываем во временную папку
+                tmp_dir = "/storage/emulated/0/Download/VoiceAgent_tmp_update/"
+                with zipfile.ZipFile(zip_path, "r") as zf:
+                    zf.extractall(tmp_dir)
+                
+                # Копируем файлы, НЕ перезаписывая config.py
+                for root, dirs, files in os.walk(tmp_dir):
+                    for fname in files:
+                        if fname == "config.py":
+                            continue  # Блок 6.5: защита настроек
+                        src = os.path.join(root, fname)
+                        dst = os.path.join("/storage/emulated/0/VoiceAgent/", fname)
+                        shutil.copy2(src, dst)
+                
+                # Чистим
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+                os.remove(zip_path)
+                
+                # Обновляем локальную версию
+                with open("/storage/emulated/0/VoiceAgent/version.txt", "w") as f:
+                    f.write(remote_version)
+                
+                print(f"\r  ✅ Обновлено до версии {remote_version}!   ")
+                print("  Перезапустите программу.")
+                print("\n  Нажмите Enter для выхода...")
+                input()
+                return
+            except:
+                print(f"\r  ⚠️ Не удалось обновить. Попробуйте позже.   ")
     
     need_register = (
         voice_config.YANDEX_APP_PASSWORD == "введите_пароль_приложения" or
@@ -865,6 +1013,7 @@ def main():
 
     main_menu()
     print("До свидания!")
+
 
 
 if __name__ == "__main__":
