@@ -66,7 +66,7 @@ def clear_screen():
 # ======================================================================
 def print_header(section):
     print("=" * 50)
-    print(f"  ОРГАНАЙЗЕР v1.0.27 > {section}")
+    print(f"  ОРГАНАЙЗЕР v1.0.28 > {section}")
     print("=" * 50)
 
 
@@ -815,14 +815,131 @@ def check_registration():
 
 def main():
     import time as _time
-    
     clear_screen()
     print_header("Загрузка")
-    print("  Проверка системы...\n")
+    print("  Проверка системы...
+")
 
     import voice_config
-    import time as _time
-
+    
+    # 1. ПАПКИ
+    print("  ✅ Папка VoiceAgent" if os.path.exists("/storage/emulated/0/VoiceAgent") else "  ❌ Папка VoiceAgent")
+    
+    rec_dir = voice_config.RECORDINGS_DIR
+    if not os.path.exists(rec_dir):
+        try:
+            os.makedirs(rec_dir)
+        except:
+            pass
+    print("  ✅ Папка Recordings" if os.path.exists(rec_dir) else "  ❌ Папка Recordings")
+    
+    # 2. БИБЛИОТЕКИ
+    print("  ⏳ Библиотеки — проверяем...", end="", flush=True)
+    try:
+        import requests
+        print("  ✅ Библиотеки готовы              ")
+    except ImportError:
+        print("  ⏳ Устанавливаю requests...", end="", flush=True)
+        import subprocess, sys
+        try:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "requests", "-q"])
+            import requests
+            print("  ✅ Библиотеки готовы              ")
+        except:
+            print("  ⚠️ requests не установлен        ")
+    
+    # 3. VPS
+    print("  ⏳ VPS — проверяем...", end="", flush=True)
+    vps_ok = False
+    for attempt in range(5):
+        try:
+            requests.get(voice_config.SERVER_URL.replace("/voice", ""), timeout=3)
+            vps_ok = True
+            print(f"  ✅ VPS отвечает (попытка {attempt+1})   ")
+            break
+        except:
+            print(f"  ⏳ VPS — попытка {attempt+1}/5...", end="", flush=True)
+            _time.sleep(1)
+    if not vps_ok:
+        print("  ⚠️ VPS не отвечает                ")
+    
+    # 4. ИНТЕРНЕТ
+    print("  ⏳ Интернет — проверяем...", end="", flush=True)
+    net_ok = False
+    for attempt in range(5):
+        try:
+            requests.get("https://google.com", timeout=3)
+            net_ok = True
+            print(f"  ✅ Интернет (попытка {attempt+1})        ")
+            break
+        except:
+            print(f"  ⏳ Интернет — попытка {attempt+1}/5...", end="", flush=True)
+            _time.sleep(1)
+    if not net_ok:
+        print("  ⚠️ Нет интернета                  ")
+        print("
+  Проверьте подключение к интернету")
+        print("  и перезапустите приложение.")
+        print("
+  Нажмите Enter для выхода...")
+        input()
+        return
+    
+    # 5. КАЛЕНДАРЬ
+    print("  ⏳ Календарь — проверяем...", end="", flush=True)
+    cal_ok = False
+    for attempt in range(5):
+        try:
+            from caldav_client import get_calendar_url
+            url = get_calendar_url()
+            if url:
+                cal_ok = True
+                print(f"  ✅ Календарь доступен (попытка {attempt+1})   ")
+                break
+        except:
+            pass
+        if not cal_ok:
+            print(f"  ⏳ Календарь — попытка {attempt+1}/5...", end="", flush=True)
+            _time.sleep(1)
+    if not cal_ok:
+        print("  ⚠️ Календарь не отвечает           ")
+    
+    # 6. ПОДДЕРЖКА
+    print("  ⏳ Поддержка — проверяем...", end="", flush=True)
+    support_ok = False
+    for attempt in range(3):
+        try:
+            r = requests.post("http://157.22.202.232:8200/report", data="ping", timeout=5)
+            if r.status_code in (200, 500):
+                support_ok = True
+                print(f"  ✅ Поддержка: В СЕТИ (попытка {attempt+1})   ")
+                break
+        except:
+            print(f"  ⏳ Поддержка — попытка {attempt+1}/3...", end="", flush=True)
+            _time.sleep(1)
+    if not support_ok:
+        print("  ⚠️ Поддержка: ОФФЛАЙН              ")
+    
+    # 7. ВЕРСИЯ
+    LOCAL_VERSION = "1.0.28"
+    print("  ⏳ Обновления — проверяем...", end="", flush=True)
+    try:
+        r_ver = requests.get(
+            "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt",
+            timeout=5
+        )
+        if r_ver.status_code == 200:
+            remote = r_ver.text.strip()
+            if remote == LOCAL_VERSION:
+                print(f"  ✅ Версия {LOCAL_VERSION} — актуальна      ")
+            else:
+                print(f"  🆕 Новая версия: {remote}              ")
+        else:
+            print(f"  ⚠️ Не удалось проверить обновления       ")
+    except:
+        print(f"  ⚠️ Не удалось проверить обновления       ")
+    
+    # 8. РЕГИСТРАЦИЯ
     need_register = (
         voice_config.YANDEX_APP_PASSWORD == "введите_пароль_приложения" or
         voice_config.YANDEX_APP_PASSWORD == "" or
