@@ -964,6 +964,33 @@ def main():
     )
     print("  ⚠️ Нужна регистрация" if need_register else "  ✅ Регистрация пройдена")
 
+    # Показываем версию
+    try:
+        r_ver = requests.get(
+            "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt",
+            timeout=5
+        )
+        if r_ver.status_code == 200:
+            remote_version = r_ver.text.strip()
+            if remote_version != LOCAL_VERSION:
+                print(f"\n  ⚠️ Новая версия: {remote_version}. Обновляю...")
+                r_main = requests.get(
+                    "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/main.py",
+                    timeout=10
+                )
+                if r_main.status_code == 200:
+                    with open("/storage/emulated/0/VoiceAgent/main.py", "w", encoding="utf-8") as f:
+                        f.write(r_main.text)
+                    with open("/storage/emulated/0/VoiceAgent/version.txt", "w") as f:
+                        f.write(remote_version)
+                    print(f"  ✅ Обновлено до {remote_version}. Перезапустите.")
+                    input("\n  Нажмите Enter для перезапуска...")
+                    return
+            else:
+                print(f"  ✅ Версия {LOCAL_VERSION} — актуальна")
+    except:
+        pass
+
     print("\n" + "=" * 50)
     print("  Все проверки завершены.")
     print("  Нажмите Enter для продолжения...")
