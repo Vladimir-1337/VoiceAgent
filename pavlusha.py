@@ -137,7 +137,7 @@ ok(f"Самый свежий файл: {latest_name}")
 # Копируем в Recordings
 dest = os.path.join(rec, latest_name)
 if not os.path.exists(dest):
-    with open(latest_file, 'rb') as fsrc:\n    with open(dest, 'wb') as fdst:\n        fdst.write(fsrc.read())
+    
     ok(f"Файл скопирован в Recordings: {latest_name}")
 else:
     ok(f"Файл уже в Recordings: {latest_name}")
