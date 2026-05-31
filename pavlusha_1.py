@@ -54,28 +54,20 @@ else:
 # ШАГ 3: ЗАПУСТИТЬ УСТАНОВЩИК
 # ═══════════════════════════════════════
 print("\n[3/5] Запускаю установщик...")
-try:
-    import requests as _r
-    # Качаем install_organizer.py
-    r = _r.get("https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/install_organizer.py", timeout=10)
-    if r.status_code == 200:
-        installer_path = "/storage/emulated/0/Download/install_organizer_temp.py"
-        with open(installer_path, "w", encoding="utf-8") as f:
-            f.write(r.text)
-        
-        # Запускаем установщик молча
-        result = subprocess.run([sys.executable, installer_path], capture_output=True, text=True, timeout=120)
-        
-        if os.path.exists(BASE) and os.path.exists(os.path.join(BASE, "main.py")):
-            ok("Установщик отработал. main.py на месте.")
-        else:
-            fail("Установщик НЕ создал main.py")
-        
-        os.remove(installer_path)
+import requests as _r
+r = _r.get("https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/install_organizer.py", timeout=10)
+if r.status_code == 200:
+    installer_path = "/storage/emulated/0/Download/install_organizer_temp.py"
+    with open(installer_path, "w", encoding="utf-8") as f:
+        f.write(r.text)
+    result = subprocess.run([sys.executable, installer_path], capture_output=True, text=True, timeout=120)
+    if os.path.exists(BASE) and os.path.exists(os.path.join(BASE, "main.py")):
+        ok("Установщик отработал. main.py на месте.")
     else:
-        fail(f"Не удалось скачать установщик: {r.status_code}")
-except Exception as e:
-    fail(f"Ошибка установщика: {str(e)[:80]}")
+        fail("Установщик НЕ создал main.py")
+    os.remove(installer_path)
+else:
+    fail(f"Не удалось скачать установщик: {r.status_code}")
 
 # ═══════════════════════════════════════
 # ШАГ 4: ВОССТАНОВИТЬ config.py
