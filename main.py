@@ -66,7 +66,7 @@ def clear_screen():
 # ======================================================================
 def print_header(section):
     print("=" * 50)
-    print(f"  ОРГАНАЙЗЕР v1.0.17 > {section}")
+    print(f"  ОРГАНАЙЗЕР v1.0.18 > {section}")
     print("=" * 50)
 
 
@@ -919,7 +919,7 @@ def main():
         print("\r  ⚠️ Поддержка: ОФФЛАЙН (программа работает)   ")
     
 
-    # Обновление v1.0.17 — Надёжное, без raw-ссылок, без повторов
+    # Обновление v1.0.18 — Надёжное, без raw-ссылок, без повторов
     try:
         r_ver = requests.get(
             "https://github.com/Vladimir-1337/VoiceAgent/blob/main/version.txt",
@@ -956,9 +956,12 @@ def main():
     except:
         pass
 
-    # ═══════════════════════════════════════
-    # АВТООБНОВЛЕНИЕ v1.0.17
-    # ═══════════════════════════════════════
+    # ═══════════════════════════════════════════════
+    # АВТООБНОВЛЕНИЕ v1.0.18 — ФИНАЛЬНАЯ ВЕРСИЯ
+    # Проверяет GitHub. Если новая версия — обновляет ВСЕ файлы.
+    # config.py не трогает. Регистрация сохраняется.
+    # Если GitHub недоступен — работает на текущей версии.
+    # ═══════════════════════════════════════════════
     try:
         r_ver = requests.get(
             "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt",
@@ -967,7 +970,7 @@ def main():
         if r_ver.status_code == 200:
             remote_version = r_ver.text.strip()
             if remote_version != LOCAL_VERSION:
-                print(f"\n  ⚠️ Новая версия: {remote_version}. Обновляю...")
+                print(f"\n  ⚠️ Новая версия: {remote_version}. Обновляю все файлы...")
                 zip_url = "https://github.com/Vladimir-1337/VoiceAgent/archive/refs/heads/main.zip"
                 r_zip = requests.get(zip_url, timeout=30)
                 if r_zip.status_code == 200:
@@ -979,7 +982,7 @@ def main():
                     with zipfile.ZipFile(zip_path, "r") as zf:
                         zf.extractall(tmp)
                     target = "/storage/emulated/0/VoiceAgent/"
-                    # Сохраняем config.py
+                    # Сохраняем config.py (регистрацию)
                     backup_config = None
                     config_path = os.path.join(target, "config.py")
                     if os.path.exists(config_path):
@@ -1009,13 +1012,14 @@ def main():
                     # Фиксируем версию
                     with open("/storage/emulated/0/VoiceAgent/version.txt", "w") as f:
                         f.write(remote_version)
-                    print(f"  ✅ Обновлено до {remote_version}. Регистрация сохранена.")
+                    print(f"  ✅ Обновлено до {remote_version}.")
+                    print("  Регистрация сохранена (config.py не тронут).")
                     input("\n  Нажмите Enter для перезапуска...")
                     return
         else:
-            print(f"  ✅ Версия {LOCAL_VERSION} — актуальна")
+            print(f"  ✅ Версия {LOCAL_VERSION} — актуальна (последняя)")
     except:
-        pass
+        pass  # GitHub недоступен → работаем на текущей версии
 
     need_register = (
         voice_config.YANDEX_APP_PASSWORD == "введите_пароль_приложения" or
@@ -1053,7 +1057,7 @@ def main():
         pass
 
         # ═══════════════════════════════════════
-    # АВТООБНОВЛЕНИЕ v1.0.17 — ФИНАЛ
+    # АВТООБНОВЛЕНИЕ v1.0.18 — ФИНАЛ
     # ═══════════════════════════════════════
     try:
         r_ver = requests.get(
