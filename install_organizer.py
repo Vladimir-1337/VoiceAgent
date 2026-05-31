@@ -22,23 +22,42 @@ print("  📢 Запишите короткую фразу в ДИКТОФОНЕ
 print("  (Не в Pydroid. В обычном приложении Диктофон на телефоне.)")
 input("  ⏳ Нажмите Enter после записи...")
 
-# Ищем самый свежий аудиофайл
+# Ищем аудиофайлы созданные СЕГОДНЯ, исключая системные папки
 found_audio = []
+skip_dirs = ["Android/data", "termux", "Download/termux"]
 for root, dirs, files in os.walk("/storage/emulated/0/"):
+    # Пропускаем системные папки
+    if any(skip in root for skip in skip_dirs):
+        continue
     for f in files:
-        if f.endswith((".m4a", ".mp3", ".aac", ".amr", ".wav", ".ogg")):
-            found_audio.append(os.path.join(root, f))
-    if len(found_audio) > 50:
+        if f.endswith((".m4a", ".mp3", ".aac", ".amr", ".wav")):
+            full_path = os.path.join(root, f)
+            # Только файлы созданные за последний час
+            if time.time() - os.path.getmtime(full_path) < 3600:
+                found_audio.append(full_path)
+    if len(found_audio) > 20:
         break
 
 if found_audio:
     latest = max(found_audio, key=lambda f: os.path.getmtime(f))
     recorder_folder = os.path.dirname(latest)
-    print(f"  ✅ Найдена папка: {recorder_folder}")
-    print(f"     Файл: {os.path.basename(latest)}")
+    print(f"  ✅ Найдена свежая запись: {os.path.basename(latest)}")
+    print(f"  ✅ Папка диктофона: {recorder_folder}/")
 else:
+    # Если не нашли — ищем стандартные папки
+    defaults = [
+        "/storage/emulated/0/Recordings/",
+        "/storage/emulated/0/Recorder/",
+        "/storage/emulated/0/MIUI/sound_recorder/",
+        "/storage/emulated/0/Download/",
+    ]
     recorder_folder = "/storage/emulated/0/Recordings/"
-    print(f"  ⚠️ Папка не найдена. Использую: {recorder_folder}")
+    for d in defaults:
+        if os.path.exists(d):
+            recorder_folder = d
+            break
+    print(f"  ⚠️ Свежая запись не найдена. Использую: {recorder_folder}/")
+    print(f"  (Если это неверно — удалите папку VoiceAgent и запустите установщик снова)")
 
 progress("Папка диктофона найдена", 10)
 
