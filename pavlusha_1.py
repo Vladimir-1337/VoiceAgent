@@ -78,23 +78,26 @@ if r.status_code == 200:
     else:
         fail("Установщик НЕ создал main.py")
     os.remove(ipath)
+    
+    # СРАЗУ восстанавливаем config.py поверх того что создал установщик
+    if os.path.exists(CONFIG_BACKUP):
+        try:
+            with open(CONFIG_BACKUP, "r") as f:
+                data = f.read()
+            with open(CONFIG, "w") as f:
+                f.write(data)
+            os.remove(CONFIG_BACKUP)
+        except:
+            pass
 else:
     fail(f"Не удалось скачать установщик: {r.status_code}")
 
 # STEP 4
-print("\n[4/5] Восстанавливаю config.py...")
-if os.path.exists(CONFIG_BACKUP):
-    try:
-        with open(CONFIG_BACKUP, "r") as f:
-            data = f.read()
-        with open(CONFIG, "w") as f:
-            f.write(data)
-        os.remove(CONFIG_BACKUP)
-        ok("config.py восстановлен. Регистрация сохранена.")
-    except:
-        fail("Не могу восстановить config.py")
+print("\n[4/5] Проверяю config.py...")
+if os.path.exists(CONFIG):
+    ok("config.py на месте. Регистрация сохранена.")
 else:
-    ok("Нечего восстанавливать")
+    ok("config.py будет создан при первом запуске.")
 
 # STEP 5
 print("\n[5/5] Диагностика...")
