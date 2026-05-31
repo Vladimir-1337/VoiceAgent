@@ -151,6 +151,35 @@ else:
     fail(f"Размеры различаются! Источник: {src_size}, копия: {dst_size}")
 
 # ═══════════════════════════════════════
+# 6. ТЕСТ МОСТА: копирование в Recordings
+# ═══════════════════════════════════════
+print("\n[6] Тест моста (копирование аудио в Recordings):")
+
+latest_file = max(found_audio, key=lambda f: os.path.getmtime(f))
+latest_name = os.path.basename(latest_file)
+ok(f"Самый свежий файл: {latest_name}")
+
+dest = os.path.join(rec, latest_name)
+if not os.path.exists(dest):
+    try:
+        with open(latest_file, "rb") as fsrc:
+            data = fsrc.read()
+        with open(dest, "wb") as fdst:
+            fdst.write(data)
+        ok(f"Файл скопирован в Recordings: {latest_name}")
+    except Exception as e:
+        fail(f"Ошибка копирования: {str(e)[:60]}")
+else:
+    ok(f"Файл уже в Recordings: {latest_name}")
+
+src_size = os.path.getsize(latest_file)
+dst_size = os.path.getsize(dest) if os.path.exists(dest) else 0
+if src_size == dst_size:
+    ok(f"Размер совпадает: {src_size} байт")
+else:
+    fail(f"Размеры различаются! Источник: {src_size}, копия: {dst_size}")
+
+# ═══════════════════════════════════════
 # 7. ТЕСТ ИМПОРТА МОДУЛЕЙ ПРОГРАММЫ
 # ═══════════════════════════════════════
 print("\n[7] Тест модулей программы:")
