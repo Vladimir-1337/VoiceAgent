@@ -66,7 +66,7 @@ def clear_screen():
 # ======================================================================
 def print_header(section):
     print("=" * 50)
-    print(f"  ОРГАНАЙЗЕР v1.0.29 > {section}")
+    print(f"  ОРГАНАЙЗЕР v1.0.30 > {section}")
     print("=" * 50)
 
 
@@ -252,7 +252,7 @@ def main_menu():
             print("    📊 Лог мониторинга (monitor.log)")
             print("    📅 События из Яндекс.Календаря")
             print("    📁 Все временные и служебные файлы")
-            print("")
+            
             print("  ⚠️ Аудиозаписи HE удаляются.")
             print("-" * 50)
             print("  1 = Да, удалить всё")
@@ -770,7 +770,7 @@ def check_registration():
     clear_screen()
     print_header("Регистрация")
     print("  Для работы нужен доступ к Яндекс.Календарю.")
-    print("")
+    
     print("  Как получить пароль приложения:")
     print("    1. Откройте passport.yandex.ru")
     print("    2. Войдите в свой аккаунт")
@@ -778,7 +778,7 @@ def check_registration():
     print("    4. Нажмите: Создать пароль")
     print("    5. Выберите: Календарь")
     print("    6. Скопируйте пароль (16 букв)")
-    print("")
+    
     print("  Введите свои данные ниже.")
     print("-" * 50)
 
@@ -818,7 +818,7 @@ def main():
     clear_screen()
     print_header("Загрузка")
     print("  Проверка системы...")
-    print("")
+    
 
     import voice_config
     
@@ -914,7 +914,7 @@ def main():
     if not support_ok:
         print("  ⚠️ Поддержка: ОФФЛАЙН              ")
     
-    LOCAL_VERSION = "1.0.29"
+    LOCAL_VERSION = "1.0.30"
     print("  ⏳ Обновления — проверяем...", end="", flush=True)
     try:
         r_ver = requests.get(
