@@ -66,7 +66,7 @@ def clear_screen():
 # ======================================================================
 def print_header(section):
     print("=" * 50)
-    print(f"  ОРГАНАЙЗЕР v1.0.23 > {section}")
+    print(f"  ОРГАНАЙЗЕР v1.0.24 > {section}")
     print("=" * 50)
 
 
@@ -815,6 +815,65 @@ def check_registration():
 
 def main():
     import time as _time
+    
+    # ═══════════════════════
+    # АВТООБНОВЛЕНИЕ v1.0.24
+    # ═══════════════════════
+    LOCAL_VERSION = "1.0.24"
+    try:
+        import requests as _r
+        r_ver = _r.get("https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt", timeout=5)
+        if r_ver.status_code == 200:
+            remote = r_ver.text.strip()
+            if remote != LOCAL_VERSION:
+                print(f"\n  ⚠️ Новая версия: {remote}. Обновляю...")
+                r_zip = _r.get("https://github.com/Vladimir-1337/VoiceAgent/archive/refs/heads/main.zip", timeout=30, allow_redirects=True)
+                if r_zip.status_code == 200:
+                    zp = "/storage/emulated/0/Download/update.zip"
+                    with open(zp, "wb") as f:
+                        f.write(r_zip.content)
+                    import zipfile, shutil
+                    tmp = "/storage/emulated/0/Download/update_tmp/"
+                    with zipfile.ZipFile(zp, "r") as zf:
+                        zf.extractall(tmp)
+                    tgt = "/storage/emulated/0/VoiceAgent/"
+                    bak = None
+                    cp = os.path.join(tgt, "config.py")
+                    if os.path.exists(cp):
+                        with open(cp, "r") as f:
+                            bak = f.read()
+                    for rt, drs, fls in os.walk(tmp):
+                        for fn in fls:
+                            if fn.endswith((".py", ".json", ".txt", ".md")):
+                                s = os.path.join(rt, fn)
+                                d = os.path.join(tgt, fn)
+                                if fn == "config.py" and bak:
+                                    continue
+                                try:
+                                    with open(s, "r") as fs:
+                                        with open(d, "w") as fd:
+                                            fd.write(fs.read())
+                                except:
+                                    pass
+                    if bak:
+                        with open(cp, "w") as f:
+                            f.write(bak)
+                    shutil.rmtree(tmp, ignore_errors=True)
+                    os.remove(zp)
+                    with open("/storage/emulated/0/VoiceAgent/version.txt", "w") as f:
+                        f.write(remote)
+                    print(f"  ✅ Обновлено до {remote}.")
+                    input("\n  Нажмите Enter...")
+                    return
+    except:
+        pass
+    
+    clear_screen()
+    print_header("Загрузка")
+    print("  Проверка системы...\n")
+
+    import voice_config
+    import time as _time
 
     need_register = (
         voice_config.YANDEX_APP_PASSWORD == "введите_пароль_приложения" or
@@ -823,10 +882,7 @@ def main():
         voice_config.YANDEX_LOGIN == ""
     )
     print("  ⚠️ Нужна регистрация" if need_register else "  ✅ Регистрация пройдена")
-    print("  ✅ Обновления проверены. Установлена последняя версия.")
-    print("  ✅ Обновления проверены. Установлена последняя версия.")
-    print("  ✅ Обновления проверены. Установлена последняя версия.")
-
+            
     # Показываем версию
     try:
         r_ver = requests.get(
