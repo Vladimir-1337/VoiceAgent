@@ -58,8 +58,17 @@ if r.status_code == 200:
     with open(ipath, "w", encoding="utf-8") as f:
         f.write(r.text)
     
-    # Убираем input из установщика чтобы не ждать
-    subprocess.run([sys.executable, ipath], capture_output=True, text=True, timeout=180)
+    # Запускаем с живым логом
+    process = subprocess.Popen(
+        [sys.executable, ipath],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1
+    )
+    for line in process.stdout:
+        print(f"  {line.rstrip()}")
+    process.wait()
     
     ok("Установщик отработал" if os.path.exists(os.path.join(BASE, "main.py")) else "main.py НЕ создан")
     os.remove(ipath)
