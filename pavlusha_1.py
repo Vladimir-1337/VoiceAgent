@@ -270,13 +270,24 @@ try:
 except:
     fail("Не удалось проверить версии")
 
-# Г4. ZIP
+# Г4. ZIP (3 попытки)
 print("  Г4. ZIP:")
-try:
-    r = requests.get("https://github.com/Vladimir-1337/VoiceAgent/archive/refs/heads/main.zip", timeout=30, allow_redirects=True)
-    ok(f"ZIP доступен ({len(r.content)//1024} КБ)" if r.status_code == 200 else f"ZIP НЕ доступен ({r.status_code})")
-except:
-    fail("ZIP НЕ доступен")
+for attempt in range(3):
+    try:
+        r = requests.get("https://github.com/Vladimir-1337/VoiceAgent/archive/refs/heads/main.zip", timeout=30, allow_redirects=True)
+        if r.status_code == 200:
+            ok(f"ZIP доступен ({len(r.content)//1024} КБ, попытка {attempt+1})")
+            break
+        else:
+            if attempt == 2:
+                fail(f"ZIP НЕ доступен ({r.status_code})")
+            else:
+                time.sleep(2)
+    except:
+        if attempt == 2:
+            fail("ZIP НЕ доступен")
+        else:
+            time.sleep(2)
 
 # ═══════════════════════════════════════
 # БЛОК Д: ПАРСИНГ И КАЛЕНДАРЬ
