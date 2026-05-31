@@ -66,7 +66,7 @@ def clear_screen():
 # ======================================================================
 def print_header(section):
     print("=" * 50)
-    print(f"  ОРГАНАЙЗЕР v1.0.32 > {section}")
+    print(f"  ОРГАНАЙЗЕР v1.0.33 > {section}")
     print("=" * 50)
 
 
@@ -814,6 +814,111 @@ def check_registration():
 
 
 def main():
+    # Вызываем автообновление
+    try:
+        import updater
+        if updater.check():
+            print("\n  Нажмите Enter для перезапуска...")
+            input()
+            return
+    except:
+        pass
+    
+    import time as _time
+    clear_screen()
+    print_header("Загрузка")
+    print("  Проверка системы...\n")
+
+    import voice_config
+    LOCAL_VERSION = "1.0.33"
+    
+    print("  ✅ Папка VoiceAgent" if os.path.exists("/storage/emulated/0/VoiceAgent") else "  ❌ Папка VoiceAgent")
+    
+    rec_dir = voice_config.RECORDINGS_DIR
+    if not os.path.exists(rec_dir):
+        try:
+            os.makedirs(rec_dir)
+        except:
+            pass
+    print("  ✅ Папка Recordings" if os.path.exists(rec_dir) else "  ❌ Папка Recordings")
+    
+    # Библиотеки
+    print("  ⏳ Библиотеки...", end="", flush=True)
+    try:
+        import requests
+        print("\r  ✅ Библиотеки готовы              ")
+    except ImportError:
+        print("\r  ⏳ Устанавливаю requests...", end="", flush=True)
+        import subprocess, sys
+        try:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "requests", "-q"])
+            import requests
+            print("\r  ✅ Библиотеки готовы              ")
+        except:
+            print("\r  ⚠️ requests не установлен        ")
+    
+    # VPS
+    print("  ⏳ VPS...", end="", flush=True)
+    for attempt in range(5):
+        try:
+            requests.get(voice_config.SERVER_URL.replace("/voice", ""), timeout=3)
+            print(f"\r  ✅ VPS отвечает (попытка {attempt+1})   ")
+            break
+        except:
+            if attempt == 4:
+                print("\r  ⚠️ VPS не отвечает                ")
+            else:
+                _time.sleep(1)
+    
+    # Интернет
+    print("  ⏳ Интернет...", end="", flush=True)
+    for attempt in range(5):
+        try:
+            requests.get("https://google.com", timeout=3)
+            print(f"\r  ✅ Интернет (попытка {attempt+1})        ")
+            break
+        except:
+            if attempt == 4:
+                print("\r  ⚠️ Нет интернета                  ")
+                print("\n  Проверьте интернет и перезапустите.")
+                input("\n  Нажмите Enter...")
+                return
+            else:
+                _time.sleep(1)
+    
+    # Календарь
+    print("  ⏳ Календарь...", end="", flush=True)
+    for attempt in range(5):
+        try:
+            from caldav_client import get_calendar_url
+            if get_calendar_url():
+                print(f"\r  ✅ Календарь доступен (попытка {attempt+1})   ")
+                break
+        except:
+            pass
+        if attempt == 4:
+            print("\r  ⚠️ Календарь не отвечает           ")
+        else:
+            _time.sleep(1)
+    
+    # Поддержка
+    print("  ⏳ Поддержка...", end="", flush=True)
+    for attempt in range(3):
+        try:
+            r = requests.post("http://157.22.202.232:8200/report", data="ping", timeout=5)
+            if r.status_code in (200, 500):
+                print(f"\r  ✅ Поддержка: В СЕТИ (попытка {attempt+1})   ")
+                break
+        except:
+            if attempt == 2:
+                print("\r  ⚠️ Поддержка: ОФФЛАЙН              ")
+            else:
+                _time.sleep(1)
+    
+    # Версия
+    print(f"  ✅ Версия {LOCAL_VERSION} — установлена")
+    
+    need_register = (
     import time as _time
     import os as _os
     import shutil as _shutil
@@ -828,7 +933,7 @@ def main():
     # ═══════════════════════════════════════
     # 1. ПРОВЕРКА ВЕРСИИ (самое первое)
     # ═══════════════════════════════════════
-    LOCAL_VERSION = "1.0.32"
+    LOCAL_VERSION = "1.0.33"
     UPDATE_DONE = False
     
     print("  [1/8] Версия и обновления...", end="", flush=True)
