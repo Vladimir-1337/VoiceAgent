@@ -1,6 +1,5 @@
 # pavlusha.py — ДИАГНОСТИКА ТЕЛЕФОНА ДЛЯ ОРГАНАЙЗЕРА
-# ЗАПУСТИ ЭТОТ ФАЙЛ В PYDROID
-# ПОСЛЕ ЗАВЕРШЕНИЯ СКОПИРУЙ ВЕСЬ ТЕКСТ (ЛОГ) И СЛЕДУЙ ИНСТРУКЦИИ В КОНЦЕ
+# Запусти в Pydroid и скопируй весь вывод разработчику
 
 import sys, os, subprocess
 
@@ -10,11 +9,11 @@ print("=" * 60)
 
 problems = []
 
-def check(name, ok, detail=""):
+def check(name, ok):
     if ok:
         print(f"  ✅ {name}")
     else:
-        print(f"  ❌ {name} {detail}")
+        print(f"  ❌ {name}")
         problems.append(name)
 
 # 1. Python
@@ -25,35 +24,28 @@ print(f"  Версия: {sys.version}")
 print("\n[2] Библиотека requests:")
 try:
     import requests
-    print("  ✅ requests установлена")
+    print("  ✅ Установлена")
 except ImportError:
-    print("  ❌ requests HE установлена (нужна для работы)")
-    problems.append("requests HE установлена")
-    print("  Пробую установить через Яндекс-зеркало...")
+    print("  ❌ НЕ установлена. Пробую Яндекс-зеркало...")
     try:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "requests", "-i", "https://mirror.yandex.ru/mirrors/pypi/simple/", "-q", "--no-deps"], timeout=60)
         import requests
-        print("  ✅ requests установлена через зеркало")
+        print("  ✅ Установлена через зеркало")
     except:
-        print("  Пробую установить из локального файла...")
+        print("  Пробую из локального файла...")
         whl = "/storage/emulated/0/Download/requests-2.32.3-py3-none-any.whl"
         if os.path.exists(whl):
             try:
                 subprocess.check_call([sys.executable, "-m", "pip", "install", whl, "-q", "--no-deps"], timeout=60)
                 import requests
-                print("  ✅ requests установлена из .whl")
+                print("  ✅ Установлена из .whl")
             except:
-                print("  ❌ ВСЕ СПОСОБЫ ПРОВАЛИЛИСЬ (нужен VPN для установки)")
-                problems.append("Все способы установки requests провалились")
+                print("  ❌ ВСЕ СПОСОБЫ ПРОВАЛИЛИСЬ")
+                problems.append("requests не установлена")
 
 # 3. Интернет
 print("\n[3] Интернет:")
-sites = [
-    ("Google", "https://google.com"),
-    ("GitHub", "https://github.com"),
-    ("Яндекс", "https://yandex.ru"),
-]
-for name, url in sites:
+for name, url in [("Google", "https://google.com"), ("GitHub", "https://github.com"), ("Яндекс", "https://yandex.ru")]:
     try:
         r = requests.get(url, timeout=5)
         print(f"  ✅ {name}: {r.status_code}")
@@ -61,13 +53,9 @@ for name, url in sites:
         print(f"  ❌ {name}: НЕДОСТУПЕН")
         problems.append(f"{name} недоступен")
 
-# 4. PyPI (пакеты Python)
+# 4. PyPI
 print("\n[4] PyPI (установка библиотек):")
-mirrors = [
-    ("Официальный PyPI", "https://pypi.org"),
-    ("Яндекс-зеркало", "https://mirror.yandex.ru/mirrors/pypi/"),
-]
-for name, url in mirrors:
+for name, url in [("Официальный PyPI", "https://pypi.org"), ("Яндекс-зеркало", "https://mirror.yandex.ru/mirrors/pypi/")]:
     try:
         r = requests.get(url, timeout=5)
         print(f"  ✅ {name}: {r.status_code}")
@@ -79,43 +67,46 @@ for name, url in mirrors:
 print("\n[5] Сервер программы (VPS):")
 try:
     r = requests.get("http://157.22.202.232:5000/", timeout=5)
-    print(f"  ✅ VPS отвечает: {r.status_code}")
+    print(f"  ✅ Отвечает: {r.status_code}")
 except:
-    print("  ❌ VPS НЕДОСТУПЕН (распознавание голоса не будет работать)")
+    print("  ❌ НЕДОСТУПЕН")
     problems.append("VPS недоступен")
 
 # 6. Папки
 print("\n[6] Папки:")
-folders = [
-    ("Recordings", "/storage/emulated/0/Recordings/"),
-    ("Download", "/storage/emulated/0/Download/"),
-    ("VoiceAgent", "/storage/emulated/0/VoiceAgent/"),
-]
-for name, path in folders:
-    exists = os.path.exists(path)
-    print(f"  {'✅' if exists else '❌'} {name}")
-    if not exists:
+for name, path in [("Recordings", "/storage/emulated/0/Recordings/"), ("Download", "/storage/emulated/0/Download/"), ("VoiceAgent", "/storage/emulated/0/VoiceAgent/")]:
+    print(f"  {'✅' if os.path.exists(path) else '❌'} {name}")
+    if not os.path.exists(path):
         problems.append(f"Папка {name} не существует")
 
-# 7. Поиск папки диктофона
+# 7. Поиск папки диктофона (только пользовательские папки)
 print("\n[7] Поиск папки диктофона:")
+user_dirs = [
+    "/storage/emulated/0/Recordings/",
+    "/storage/emulated/0/Download/",
+    "/storage/emulated/0/DCIM/",
+    "/storage/emulated/0/Music/",
+    "/storage/emulated/0/Movies/",
+    "/storage/emulated/0/Recorder/",
+    "/storage/emulated/0/Sounds/",
+    "/storage/emulated/0/Voice Recorder/",
+    "/storage/emulated/0/MIUI/sound_recorder/",
+]
 found_audio = []
-for root, dirs, files in os.walk("/storage/emulated/0/"):
-    for f in files:
-        if f.endswith((".m4a", ".mp3", ".aac", ".amr", ".wav", ".ogg")):
-            found_audio.append(os.path.join(root, f))
-    if len(found_audio) > 30:
-        break
+for d in user_dirs:
+    if os.path.exists(d):
+        for f in os.listdir(d):
+            if f.endswith((".m4a", ".mp3", ".aac", ".amr", ".wav", ".ogg")):
+                found_audio.append(os.path.join(d, f))
 
 if found_audio:
     dirs = set(os.path.dirname(f) for f in found_audio)
-    print(f"  Найдено аудио: {len(found_audio)} файлов в {len(dirs)} папках")
+    print(f"  Найдено: {len(found_audio)} файлов в {len(dirs)} папках")
     for d in dirs:
         count = sum(1 for f in found_audio if os.path.dirname(f) == d)
         print(f"  📁 {d} ({count} файлов)")
 else:
-    print("  Аудиофайлы не найдены.")
-    print("  Сделайте запись в диктофоне и запустите тест снова.")
+    print("  Аудиофайлы не найдены. Сделайте запись в диктофоне и перезапустите.")
     problems.append("Аудиофайлы не найдены")
 
 # 8. Память
@@ -131,13 +122,12 @@ if free_gb < 0.5:
 # 9. Android
 print("\n[9] Android:")
 try:
-    import subprocess as sp
-    sdk = sp.check_output(["getprop", "ro.build.version.sdk"]).decode().strip()
-    release = sp.check_output(["getprop", "ro.build.version.release"]).decode().strip()
-    model = sp.check_output(["getprop", "ro.product.model"]).decode().strip()
+    sdk = subprocess.check_output(["getprop", "ro.build.version.sdk"]).decode().strip()
+    release = subprocess.check_output(["getprop", "ro.build.version.release"]).decode().strip()
+    model = subprocess.check_output(["getprop", "ro.product.model"]).decode().strip()
     print(f"  Версия: Android {release} (SDK {sdk}), модель: {model}")
 except:
-    print("  Не удалось определить версию")
+    print("  Не удалось определить")
 
 # ИТОГ
 print("\n" + "=" * 60)
@@ -148,27 +138,3 @@ if problems:
 else:
     print("  ✅ ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ!")
 print("=" * 60)
-
-# ИНСТРУКЦИЯ ДЛЯ БЕТА-ТЕСТЕРА
-print("""
-
-╔══════════════════════════════════════════════════════╗
-║  ЧТО ДЕЛАТЬ ДАЛЬШЕ:                                 ║
-║                                                      ║
-║  1. СКОПИРУЙ ВЕСЬ ТЕКСТ ВЫШЕ (весь лог)              ║
-║  2. Открой чат с ИИ (ChatGPT/DeepSeek/Claude)        ║
-║  3. Включи режим "Поиск + Рассуждение"               ║
-║  4. Вставь скопированный лог                         ║
-║  5. Добавь в конец:                                  ║
-║     "P.S. Загугли и составь отчёт для разработчика   ║
-║      в чём вероятнее всего может быть ошибка"        ║
-║  6. Скопируй ответ ИИ                                ║
-║  7. Отправь мне на почту:                            ║
-║     vovagubanov147@gmail.com                         ║
-║     В письме пришли:                                 ║
-║     - Лог из Pydroid (текст выше)                    ║
-║     - Ответ ИИ (полностью)                           ║
-║                                                      ║
-║  Тема письма: "Бета-тест Органайзер"                 ║
-╚══════════════════════════════════════════════════════╝
-""")
