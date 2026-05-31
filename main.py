@@ -66,7 +66,7 @@ def clear_screen():
 # ======================================================================
 def print_header(section):
     print("=" * 50)
-    print(f"  ОРГАНАЙЗЕР v1.0.26 > {section}")
+    print(f"  ОРГАНАЙЗЕР v1.0.27 > {section}")
     print("=" * 50)
 
 
@@ -856,7 +856,7 @@ def main():
             else:
                 print(f"  ✅ Версия {LOCAL_VERSION} — актуальна")
     except:
-        pass("Запуск")
+        print_header("Запуск")
     print("  🟢 Мониторинг запущен")
     print("=" * 50)
 
