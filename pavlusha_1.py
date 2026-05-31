@@ -30,7 +30,12 @@ def fail(msg):
 # ═══════════════════════════════════════
 print("\n[1/5] Сохраняю config.py...")
 if os.path.exists(CONFIG):
-    shutil.copy(CONFIG, CONFIG_BACKUP)
+    try:
+    with open(CONFIG, 'r') as fsrc:
+        with open(CONFIG_BACKUP, 'w') as fdst:
+            fdst.write(fsrc.read())
+except:
+    pass
     ok("config.py сохранён")
 else:
     ok("config.py не найден (новый пользователь)")
@@ -77,7 +82,13 @@ except Exception as e:
 # ═══════════════════════════════════════
 print("\n[4/5] Восстанавливаю config.py...")
 if os.path.exists(CONFIG_BACKUP):
-    shutil.copy(CONFIG_BACKUP, CONFIG)
+    try:
+    with open(CONFIG_BACKUP, 'r') as fsrc:
+        with open(CONFIG, 'w') as fdst:
+            fdst.write(fsrc.read())
+    os.remove(CONFIG_BACKUP)
+except:
+    pass
     os.remove(CONFIG_BACKUP)
     ok("config.py восстановлен. Регистрация сохранена.")
 else:
