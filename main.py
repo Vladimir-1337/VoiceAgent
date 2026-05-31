@@ -66,7 +66,7 @@ def clear_screen():
 # ======================================================================
 def print_header(section):
     print("=" * 50)
-    print(f"  ОРГАНАЙЗЕР v1.0.24 > {section}")
+    print(f"  ОРГАНАЙЗЕР v1.0.25 > {section}")
     print("=" * 50)
 
 
@@ -817,9 +817,9 @@ def main():
     import time as _time
     
     # ═══════════════════════
-    # АВТООБНОВЛЕНИЕ v1.0.24
+    # АВТООБНОВЛЕНИЕ v1.0.25
     # ═══════════════════════
-    LOCAL_VERSION = "1.0.24"
+    LOCAL_VERSION = "1.0.25"
     try:
         import requests as _r
         r_ver = _r.get("https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt", timeout=5)
@@ -875,6 +875,7 @@ def main():
     import voice_config
     import time as _time
 
+    import requests as _r
     need_register = (
         voice_config.YANDEX_APP_PASSWORD == "введите_пароль_приложения" or
         voice_config.YANDEX_APP_PASSWORD == "" or
@@ -908,7 +909,8 @@ def main():
             else:
                 print(f"  ✅ Версия {LOCAL_VERSION} — актуальна")
     except:
-        passprint_header("Запуск")
+        pass
+    print_header("Запуск")
     print("  🟢 Мониторинг запущен")
     print("=" * 50)
 
