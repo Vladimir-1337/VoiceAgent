@@ -66,7 +66,7 @@ def clear_screen():
 # ======================================================================
 def print_header(section):
     print("=" * 50)
-    print(f"  ОРГАНАЙЗЕР v1.0.28 > {section}")
+    print(f"  ОРГАНАЙЗЕР v1.0.29 > {section}")
     print("=" * 50)
 
 
@@ -817,12 +817,11 @@ def main():
     import time as _time
     clear_screen()
     print_header("Загрузка")
-    print("  Проверка системы...
-")
+    print("  Проверка системы...")
+    print("")
 
     import voice_config
     
-    # 1. ПАПКИ
     print("  ✅ Папка VoiceAgent" if os.path.exists("/storage/emulated/0/VoiceAgent") else "  ❌ Папка VoiceAgent")
     
     rec_dir = voice_config.RECORDINGS_DIR
@@ -833,7 +832,6 @@ def main():
             pass
     print("  ✅ Папка Recordings" if os.path.exists(rec_dir) else "  ❌ Папка Recordings")
     
-    # 2. БИБЛИОТЕКИ
     print("  ⏳ Библиотеки — проверяем...", end="", flush=True)
     try:
         import requests
@@ -848,7 +846,6 @@ def main():
         except:
             print("  ⚠️ requests не установлен        ")
     
-    # 3. VPS
     print("  ⏳ VPS — проверяем...", end="", flush=True)
     vps_ok = False
     for attempt in range(5):
@@ -863,7 +860,6 @@ def main():
     if not vps_ok:
         print("  ⚠️ VPS не отвечает                ")
     
-    # 4. ИНТЕРНЕТ
     print("  ⏳ Интернет — проверяем...", end="", flush=True)
     net_ok = False
     for attempt in range(5):
@@ -885,7 +881,6 @@ def main():
         input()
         return
     
-    # 5. КАЛЕНДАРЬ
     print("  ⏳ Календарь — проверяем...", end="", flush=True)
     cal_ok = False
     for attempt in range(5):
@@ -904,7 +899,6 @@ def main():
     if not cal_ok:
         print("  ⚠️ Календарь не отвечает           ")
     
-    # 6. ПОДДЕРЖКА
     print("  ⏳ Поддержка — проверяем...", end="", flush=True)
     support_ok = False
     for attempt in range(3):
@@ -920,8 +914,7 @@ def main():
     if not support_ok:
         print("  ⚠️ Поддержка: ОФФЛАЙН              ")
     
-    # 7. ВЕРСИЯ
-    LOCAL_VERSION = "1.0.28"
+    LOCAL_VERSION = "1.0.29"
     print("  ⏳ Обновления — проверяем...", end="", flush=True)
     try:
         r_ver = requests.get(
@@ -939,8 +932,7 @@ def main():
     except:
         print(f"  ⚠️ Не удалось проверить обновления       ")
     
-    # 8. РЕГИСТРАЦИЯ
-    need_register = (
+    need_register = (need_register = (
         voice_config.YANDEX_APP_PASSWORD == "введите_пароль_приложения" or
         voice_config.YANDEX_APP_PASSWORD == "" or
         voice_config.YANDEX_LOGIN == "введите_логин@yandex.ru" or
