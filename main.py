@@ -66,7 +66,7 @@ def clear_screen():
 # ======================================================================
 def print_header(section):
     print("=" * 50)
-    print(f"  ОРГАНАЙЗЕР v1.0.21 > {section}")
+    print(f"  ОРГАНАЙЗЕР v1.0.22 > {section}")
     print("=" * 50)
 
 
