@@ -66,7 +66,7 @@ def clear_screen():
 # ======================================================================
 def print_header(section):
     print("=" * 50)
-    print(f"  ОРГАНАЙЗЕР v1.0.33 > {section}")
+    print(f"  ОРГАНАЙЗЕР v1.0.34 > {section}")
     print("=" * 50)
 
 
@@ -825,103 +825,7 @@ def main():
         pass
     
     import time as _time
-    clear_screen()
-    print_header("Загрузка")
-    print("  Проверка системы...\n")
-
-    import voice_config
-    LOCAL_VERSION = "1.0.33"
-    
-    print("  ✅ Папка VoiceAgent" if os.path.exists("/storage/emulated/0/VoiceAgent") else "  ❌ Папка VoiceAgent")
-    
-    rec_dir = voice_config.RECORDINGS_DIR
-    if not os.path.exists(rec_dir):
-        try:
-            os.makedirs(rec_dir)
-        except:
-            pass
-    print("  ✅ Папка Recordings" if os.path.exists(rec_dir) else "  ❌ Папка Recordings")
-    
-    # Библиотеки
-    print("  ⏳ Библиотеки...", end="", flush=True)
-    try:
-        import requests
-        print("\r  ✅ Библиотеки готовы              ")
-    except ImportError:
-        print("\r  ⏳ Устанавливаю requests...", end="", flush=True)
-        import subprocess, sys
-        try:
-            subprocess.check_call([sys.executable, "-m", "pip", "install", "requests", "-q"])
-            import requests
-            print("\r  ✅ Библиотеки готовы              ")
-        except:
-            print("\r  ⚠️ requests не установлен        ")
-    
-    # VPS
-    print("  ⏳ VPS...", end="", flush=True)
-    for attempt in range(5):
-        try:
-            requests.get(voice_config.SERVER_URL.replace("/voice", ""), timeout=3)
-            print(f"\r  ✅ VPS отвечает (попытка {attempt+1})   ")
-            break
-        except:
-            if attempt == 4:
-                print("\r  ⚠️ VPS не отвечает                ")
-            else:
-                _time.sleep(1)
-    
-    # Интернет
-    print("  ⏳ Интернет...", end="", flush=True)
-    for attempt in range(5):
-        try:
-            requests.get("https://google.com", timeout=3)
-            print(f"\r  ✅ Интернет (попытка {attempt+1})        ")
-            break
-        except:
-            if attempt == 4:
-                print("\r  ⚠️ Нет интернета                  ")
-                print("\n  Проверьте интернет и перезапустите.")
-                input("\n  Нажмите Enter...")
-                return
-            else:
-                _time.sleep(1)
-    
-    # Календарь
-    print("  ⏳ Календарь...", end="", flush=True)
-    for attempt in range(5):
-        try:
-            from caldav_client import get_calendar_url
-            if get_calendar_url():
-                print(f"\r  ✅ Календарь доступен (попытка {attempt+1})   ")
-                break
-        except:
-            pass
-        if attempt == 4:
-            print("\r  ⚠️ Календарь не отвечает           ")
-        else:
-            _time.sleep(1)
-    
-    # Поддержка
-    print("  ⏳ Поддержка...", end="", flush=True)
-    for attempt in range(3):
-        try:
-            r = requests.post("http://157.22.202.232:8200/report", data="ping", timeout=5)
-            if r.status_code in (200, 500):
-                print(f"\r  ✅ Поддержка: В СЕТИ (попытка {attempt+1})   ")
-                break
-        except:
-            if attempt == 2:
-                print("\r  ⚠️ Поддержка: ОФФЛАЙН              ")
-            else:
-                _time.sleep(1)
-    
-    # Версия
-    print(f"  ✅ Версия {LOCAL_VERSION} — установлена")
-    
-    need_register = (
-    import time as _time
     import os as _os
-    import shutil as _shutil
     
     clear_screen()
     print_header("Загрузка")
@@ -929,225 +833,94 @@ def main():
     print("")
 
     import voice_config
+    LOCAL_VERSION = "1.0.34"
     
-    # ═══════════════════════════════════════
-    # 1. ПРОВЕРКА ВЕРСИИ (самое первое)
-    # ═══════════════════════════════════════
-    LOCAL_VERSION = "1.0.33"
-    UPDATE_DONE = False
-    
-    print("  [1/8] Версия и обновления...", end="", flush=True)
-    try:
-        import requests as _r
-        r_ver = _r.get(
-            "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt",
-            timeout=5
-        )
-        if r_ver.status_code == 200:
-            remote = r_ver.text.strip()
-            if remote != LOCAL_VERSION:
-                print(f"\r  🆕 Новая версия: {remote}. Обновляю...")
-                r_zip = _r.get(
-                    "https://github.com/Vladimir-1337/VoiceAgent/archive/refs/heads/main.zip",
-                    timeout=30, allow_redirects=True
-                )
-                if r_zip.status_code == 200:
-                    zp = "/storage/emulated/0/Download/update.zip"
-                    with open(zp, "wb") as f:
-                        f.write(r_zip.content)
-                    import zipfile
-                    tmp = "/storage/emulated/0/Download/update_tmp/"
-                    with zipfile.ZipFile(zp, "r") as zf:
-                        zf.extractall(tmp)
-                    tgt = "/storage/emulated/0/VoiceAgent/"
-                    bak = None
-                    cp = _os.path.join(tgt, "config.py")
-                    if _os.path.exists(cp):
-                        with open(cp, "r") as f:
-                            bak = f.read()
-                    for rt, drs, fls in _os.walk(tmp):
-                        for fn in fls:
-                            if fn.endswith((".py", ".json", ".txt", ".md")):
-                                s = _os.path.join(rt, fn)
-                                d = _os.path.join(tgt, fn)
-                                if fn == "config.py" and bak:
-                                    continue
-                                try:
-                                    with open(s, "r") as fs:
-                                        with open(d, "w") as fd:
-                                            fd.write(fs.read())
-                                except:
-                                    pass
-                    if bak:
-                        with open(cp, "w") as f:
-                            f.write(bak)
-                    _shutil.rmtree(tmp, ignore_errors=True)
-                    _os.remove(zp)
-                    with open("/storage/emulated/0/VoiceAgent/version.txt", "w") as f:
-                        f.write(remote)
-                    print(f"\r  ✅ Обновлено до {remote}. Перезапустите.    ")
-                    input("\n  Нажмите Enter...")
-                    return
-            else:
-                print(f"\r  ✅ Версия {LOCAL_VERSION} — последняя      ")
-        else:
-            print(f"\r  ⚠️ Не удалось проверить обновления       ")
-    except:
-        print(f"\r  ⚠️ Не удалось проверить обновления       ")
-    
-    # ═══════════════════════════════════════
-    # 2. ПРОВЕРКА ПАПОК И АУДИОЗАПИСИ
-    # ═══════════════════════════════════════
-    print("  [2/8] Папки и аудиозаписи...", end="", flush=True)
-    
-    rec_dir = voice_config.RECORDINGS_DIR
-    voiceagent_ok = _os.path.exists("/storage/emulated/0/VoiceAgent")
-    recordings_ok = _os.path.exists(rec_dir)
-    
-    if not voiceagent_ok:
+    print("  [1] Папки...", end="", flush=True)
+    v_ok = _os.path.exists("/storage/emulated/0/VoiceAgent")
+    r_ok = _os.path.exists(voice_config.RECORDINGS_DIR)
+    if not v_ok:
         _os.makedirs("/storage/emulated/0/VoiceAgent", exist_ok=True)
-    if not recordings_ok:
-        _os.makedirs(rec_dir, exist_ok=True)
+    if not r_ok:
+        _os.makedirs(voice_config.RECORDINGS_DIR, exist_ok=True)
+    print(f"\r  ✅ Папки готовы                    ")
     
-    # Эмуляция: создаём тестовый файл и проверяем запись
-    test_file = _os.path.join(rec_dir, ".diag_test.m4a")
-    try:
-        with open(test_file, "w") as f:
-            f.write("test")
-        _os.remove(test_file)
-        write_ok = True
-    except:
-        write_ok = False
-    
-    # Поиск реальной папки диктофона
-    recorder_dirs = [
-        "/storage/emulated/0/MIUI/sound_recorder/",
-        "/storage/emulated/0/Recorder/",
-        "/storage/emulated/0/Download/",
-        "/storage/emulated/0/Sounds/",
-        "/storage/emulated/0/Voice Recorder/",
-        "/storage/emulated/0/record/",
-        "/storage/emulated/0/DCIM/Voice/",
-        "/storage/emulated/0/Music/Recordings/",
-    ]
-    
-    found_audio = []
-    for d in recorder_dirs:
-        if _os.path.exists(d):
-            try:
-                for f in _os.listdir(d):
-                    if f.endswith((".m4a", ".mp3", ".aac", ".amr", ".wav", ".ogg")):
-                        found_audio.append(_os.path.join(d, f))
-            except:
-                pass
-    
-    if found_audio:
-        # Нашли папку с аудио — это и есть папка диктофона
-        recorder_folder = _os.path.dirname(found_audio[0])
-        print(f"\r  ✅ Папки готовы, диктофон: {recorder_folder.split('/')[-2]}  ")
-    elif write_ok:
-        print(f"\r  ✅ Папки готовы (аудио не найдены)       ")
-    else:
-        print(f"\r  ⚠️ Папки есть, но запись недоступна      ")
-    
-    # ═══════════════════════════════════════
-    # 3. БИБЛИОТЕКИ
-    # ═══════════════════════════════════════
-    print("  [3/8] Библиотеки...", end="", flush=True)
+    print("  [2] Библиотеки...", end="", flush=True)
     try:
         import requests
-        print(f"\r  ✅ Библиотеки готовы                    ")
+        print(f"\r  ✅ Библиотеки готовы                ")
     except ImportError:
         print(f"\r  ⏳ Устанавливаю requests...", end="", flush=True)
         import subprocess, sys
         try:
             subprocess.check_call([sys.executable, "-m", "pip", "install", "requests", "-q"])
             import requests
-            print(f"\r  ✅ Библиотеки готовы                    ")
+            print(f"\r  ✅ Библиотеки готовы                ")
         except:
-            print(f"\r  ⚠️ requests не установлен              ")
+            print(f"\r  ⚠️ requests не установлен          ")
     
-    # ═══════════════════════════════════════
-    # 4. VPS
-    # ═══════════════════════════════════════
-    print("  [4/8] VPS...", end="", flush=True)
-    vps_ok = False
-    for attempt in range(3):
+    print("  [3] VPS...", end="", flush=True)
+    for attempt in range(5):
         try:
             requests.get(voice_config.SERVER_URL.replace("/voice", ""), timeout=3)
-            vps_ok = True
-            print(f"\r  ✅ VPS отвечает                         ")
+            print(f"\r  ✅ VPS отвечает                     ")
             break
         except:
-            if attempt == 2:
-                print(f"\r  ⚠️ VPS не отвечает                       ")
+            if attempt == 4:
+                print(f"\r  ⚠️ VPS не отвечает                  ")
             else:
                 _time.sleep(1)
     
-    # ═══════════════════════════════════════
-    # 5. ИНТЕРНЕТ
-    # ═══════════════════════════════════════
-    print("  [5/8] Интернет...", end="", flush=True)
-    net_ok = False
-    for attempt in range(3):
+    print("  [4] Интернет...", end="", flush=True)
+    for attempt in range(5):
         try:
             requests.get("https://google.com", timeout=3)
-            net_ok = True
-            print(f"\r  ✅ Интернет есть                         ")
+            print(f"\r  ✅ Интернет                         ")
             break
         except:
-            if attempt == 2:
-                print(f"\r  ⚠️ Нет интернета                         ")
+            if attempt == 4:
+                print(f"\r  ⚠️ Нет интернета                    ")
                 print("\n  Проверьте интернет и перезапустите.")
                 input("\n  Нажмите Enter...")
                 return
             else:
                 _time.sleep(1)
     
-    # ═══════════════════════════════════════
-    # 6. КАЛЕНДАРЬ
-    # ═══════════════════════════════════════
-    print("  [6/8] Календарь...", end="", flush=True)
-    for attempt in range(3):
+    print("  [5] Календарь...", end="", flush=True)
+    for attempt in range(5):
         try:
             from caldav_client import get_calendar_url
             if get_calendar_url():
-                print(f"\r  ✅ Календарь доступен                    ")
+                print(f"\r  ✅ Календарь доступен               ")
                 break
         except:
             pass
-        if attempt == 2:
-            print(f"\r  ⚠️ Календарь не отвечает                 ")
+        if attempt == 4:
+            print(f"\r  ⚠️ Календарь не отвечает            ")
         else:
             _time.sleep(1)
     
-    # ═══════════════════════════════════════
-    # 7. ПОДДЕРЖКА
-    # ═══════════════════════════════════════
-    print("  [7/8] Поддержка...", end="", flush=True)
-    for attempt in range(2):
+    print("  [6] Поддержка...", end="", flush=True)
+    for attempt in range(3):
         try:
             r = requests.post("http://157.22.202.232:8200/report", data="ping", timeout=5)
             if r.status_code in (200, 500):
-                print(f"\r  ✅ Поддержка: В СЕТИ                     ")
+                print(f"\r  ✅ Поддержка: В СЕТИ                ")
                 break
         except:
-            if attempt == 1:
-                print(f"\r  ⚠️ Поддержка: ОФФЛАЙН                    ")
+            if attempt == 2:
+                print(f"\r  ⚠️ Поддержка: ОФФЛАЙН               ")
             else:
                 _time.sleep(1)
     
-    # ═══════════════════════════════════════
-    # 8. РЕГИСТРАЦИЯ
-    # ═══════════════════════════════════════
-    print("  [8/8] Регистрация...", end="", flush=True)
+    print(f"  [7] Версия {LOCAL_VERSION} — установлена")
+    
     need_register = (
         voice_config.YANDEX_APP_PASSWORD == "введите_пароль_приложения" or
         voice_config.YANDEX_APP_PASSWORD == "" or
         voice_config.YANDEX_LOGIN == "введите_логин@yandex.ru" or
         voice_config.YANDEX_LOGIN == ""
     )
-    print(f"\r  {'⚠️ Нужна регистрация' if need_register else '✅ Регистрация пройдена'}                    ")
+    print(f"  [8] {'⚠️ Нужна регистрация' if need_register else '✅ Регистрация пройдена'}")
 
     print("\n" + "=" * 50)
     print("  Все проверки завершены.")
