@@ -66,7 +66,7 @@ def clear_screen():
 # ======================================================================
 def print_header(section):
     print("=" * 50)
-    print(f"  ОРГАНАЙЗЕР v1.0.19 > {section}")
+    print(f"  ОРГАНАЙЗЕР v1.0.20 > {section}")
     print("=" * 50)
 
 
@@ -919,7 +919,7 @@ def main():
         print("\r  ⚠️ Поддержка: ОФФЛАЙН (программа работает)   ")
     
 
-    # Обновление v1.0.19 — Надёжное, без raw-ссылок, без повторов
+    # Обновление v1.0.20 — Надёжное, без raw-ссылок, без повторов
     try:
         r_ver = requests.get(
             "https://github.com/Vladimir-1337/VoiceAgent/blob/main/version.txt",
@@ -957,7 +957,7 @@ def main():
         pass
 
     # ═══════════════════════════════════════════════
-    # АВТООБНОВЛЕНИЕ v1.0.19 — ФИНАЛЬНАЯ ВЕРСИЯ
+    # АВТООБНОВЛЕНИЕ v1.0.20 — ФИНАЛЬНАЯ ВЕРСИЯ
     # Проверяет GitHub. Если новая версия — обновляет ВСЕ файлы.
     # config.py не трогает. Регистрация сохраняется.
     # Если GitHub недоступен — работает на текущей версии.
@@ -972,7 +972,7 @@ def main():
             if remote_version != LOCAL_VERSION:
                 print(f"\n  ⚠️ Новая версия: {remote_version}. Обновляю все файлы...")
                 zip_url = "https://github.com/Vladimir-1337/VoiceAgent/archive/refs/heads/main.zip"
-                r_zip = requests.get(zip_url, timeout=30)
+                r_zip = requests.get(zip_url, timeout=30, allow_redirects=True)
                 if r_zip.status_code == 200:
                     zip_path = "/storage/emulated/0/Download/update.zip"
                     with open(zip_path, "wb") as f:
@@ -1029,6 +1029,7 @@ def main():
     )
     print("  ⚠️ Нужна регистрация" if need_register else "  ✅ Регистрация пройдена")
     print("  ✅ Обновления проверены. Установлена последняя версия.")
+    print("  ✅ Обновления проверены. Установлена последняя версия.")
 
     # Показываем версию
     try:
@@ -1058,7 +1059,7 @@ def main():
         pass
 
         # ═══════════════════════════════════════
-    # АВТООБНОВЛЕНИЕ v1.0.19 — ФИНАЛ
+    # АВТООБНОВЛЕНИЕ v1.0.20 — ФИНАЛ
     # ═══════════════════════════════════════
     try:
         r_ver = requests.get(
@@ -1070,7 +1071,7 @@ def main():
             if remote_version != LOCAL_VERSION:
                 print(f"\n  ⚠️ Новая версия: {remote_version}. Обновляю...")
                 zip_url = "https://github.com/Vladimir-1337/VoiceAgent/archive/refs/heads/main.zip"
-                r_zip = requests.get(zip_url, timeout=30)
+                r_zip = requests.get(zip_url, timeout=30, allow_redirects=True)
                 if r_zip.status_code == 200:
                     zip_path = "/storage/emulated/0/Download/update.zip"
                     with open(zip_path, "wb") as f:
