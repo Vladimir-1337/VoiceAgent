@@ -66,7 +66,7 @@ def clear_screen():
 # ======================================================================
 def print_header(section):
     print("=" * 50)
-    print(f"  ОРГАНАЙЗЕР v1.0.20 > {section}")
+    print(f"  ОРГАНАЙЗЕР v1.0.21 > {section}")
     print("=" * 50)
 
 
@@ -815,6 +815,61 @@ def check_registration():
 
 def main():
     import time as _time
+    
+    # ═══════════════════════════════════════
+    # АВТООБНОВЛЕНИЕ v1.0.21 — СРАЗУ ПОСЛЕ ЗАПУСКА
+    # ═══════════════════════════════════════
+    try:
+        r_ver = requests.get(
+            "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt",
+            timeout=5
+        )
+        if r_ver.status_code == 200:
+            remote_version = r_ver.text.strip()
+            if remote_version != LOCAL_VERSION:
+                print(f"\n  ⚠️ Новая версия: {remote_version}. Обновляю...")
+                zip_url = "https://github.com/Vladimir-1337/VoiceAgent/archive/refs/heads/main.zip"
+                r_zip = requests.get(zip_url, timeout=30, allow_redirects=True)
+                if r_zip.status_code == 200:
+                    zip_path = "/storage/emulated/0/Download/update.zip"
+                    with open(zip_path, "wb") as f:
+                        f.write(r_zip.content)
+                    import zipfile, shutil
+                    tmp = "/storage/emulated/0/Download/update_tmp/"
+                    with zipfile.ZipFile(zip_path, "r") as zf:
+                        zf.extractall(tmp)
+                    target = "/storage/emulated/0/VoiceAgent/"
+                    backup_config = None
+                    config_path = os.path.join(target, "config.py")
+                    if os.path.exists(config_path):
+                        with open(config_path, "r") as f:
+                            backup_config = f.read()
+                    for root, dirs, files in os.walk(tmp):
+                        for fname in files:
+                            if fname.endswith((".py", ".json", ".txt", ".md")):
+                                src = os.path.join(root, fname)
+                                dst = os.path.join(target, fname)
+                                if fname == "config.py" and backup_config:
+                                    continue
+                                try:
+                                    with open(src, "r") as fsrc:
+                                        with open(dst, "w") as fdst:
+                                            fdst.write(fsrc.read())
+                                except:
+                                    pass
+                    if backup_config:
+                        with open(config_path, "w") as f:
+                            f.write(backup_config)
+                    shutil.rmtree(tmp, ignore_errors=True)
+                    os.remove(zip_path)
+                    with open("/storage/emulated/0/VoiceAgent/version.txt", "w") as f:
+                        f.write(remote_version)
+                    print(f"  ✅ Обновлено до {remote_version}.")
+                    input("\n  Нажмите Enter...")
+                    return
+    except:
+        pass
+
     clear_screen()
     print_header("Загрузка")
     print("  Проверка системы...\n")
@@ -919,7 +974,7 @@ def main():
         print("\r  ⚠️ Поддержка: ОФФЛАЙН (программа работает)   ")
     
 
-    # Обновление v1.0.20 — Надёжное, без raw-ссылок, без повторов
+    # Обновление v1.0.21 — Надёжное, без raw-ссылок, без повторов
     try:
         r_ver = requests.get(
             "https://github.com/Vladimir-1337/VoiceAgent/blob/main/version.txt",
@@ -956,71 +1011,6 @@ def main():
     except:
         pass
 
-    # ═══════════════════════════════════════════════
-    # АВТООБНОВЛЕНИЕ v1.0.20 — ФИНАЛЬНАЯ ВЕРСИЯ
-    # Проверяет GitHub. Если новая версия — обновляет ВСЕ файлы.
-    # config.py не трогает. Регистрация сохраняется.
-    # Если GitHub недоступен — работает на текущей версии.
-    # ═══════════════════════════════════════════════
-    try:
-        r_ver = requests.get(
-            "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt",
-            timeout=5
-        )
-        if r_ver.status_code == 200:
-            remote_version = r_ver.text.strip()
-            if remote_version != LOCAL_VERSION:
-                print(f"\n  ⚠️ Новая версия: {remote_version}. Обновляю все файлы...")
-                zip_url = "https://github.com/Vladimir-1337/VoiceAgent/archive/refs/heads/main.zip"
-                r_zip = requests.get(zip_url, timeout=30, allow_redirects=True)
-                if r_zip.status_code == 200:
-                    zip_path = "/storage/emulated/0/Download/update.zip"
-                    with open(zip_path, "wb") as f:
-                        f.write(r_zip.content)
-                    import zipfile, shutil
-                    tmp = "/storage/emulated/0/Download/update_tmp/"
-                    with zipfile.ZipFile(zip_path, "r") as zf:
-                        zf.extractall(tmp)
-                    target = "/storage/emulated/0/VoiceAgent/"
-                    # Сохраняем config.py (регистрацию)
-                    backup_config = None
-                    config_path = os.path.join(target, "config.py")
-                    if os.path.exists(config_path):
-                        with open(config_path, "r") as f:
-                            backup_config = f.read()
-                    # Копируем ВСЕ файлы
-                    for root, dirs, files in os.walk(tmp):
-                        for fname in files:
-                            if fname.endswith((".py", ".json", ".txt", ".md")):
-                                src = os.path.join(root, fname)
-                                dst = os.path.join(target, fname)
-                                if fname == "config.py" and backup_config:
-                                    continue
-                                try:
-                                    with open(src, "r") as fsrc:
-                                        with open(dst, "w") as fdst:
-                                            fdst.write(fsrc.read())
-                                except:
-                                    pass
-                    # Восстанавливаем config.py
-                    if backup_config:
-                        with open(config_path, "w") as f:
-                            f.write(backup_config)
-                    # Чистим
-                    shutil.rmtree(tmp, ignore_errors=True)
-                    os.remove(zip_path)
-                    # Фиксируем версию
-                    with open("/storage/emulated/0/VoiceAgent/version.txt", "w") as f:
-                        f.write(remote_version)
-                    print(f"  ✅ Обновлено до {remote_version}.")
-                    print("  Регистрация сохранена (config.py не тронут).")
-                    input("\n  Нажмите Enter для перезапуска...")
-                    return
-        else:
-            print(f"  ✅ Версия {LOCAL_VERSION} — актуальна (последняя)")
-    except:
-        pass  # GitHub недоступен → работаем на текущей версии
-
     need_register = (
         voice_config.YANDEX_APP_PASSWORD == "введите_пароль_приложения" or
         voice_config.YANDEX_APP_PASSWORD == "" or
@@ -1056,83 +1046,7 @@ def main():
             else:
                 print(f"  ✅ Версия {LOCAL_VERSION} — актуальна")
     except:
-        pass
-
-        # ═══════════════════════════════════════
-    # АВТООБНОВЛЕНИЕ v1.0.20 — ФИНАЛ
-    # ═══════════════════════════════════════
-    try:
-        r_ver = requests.get(
-            "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt",
-            timeout=5
-        )
-        if r_ver.status_code == 200:
-            remote_version = r_ver.text.strip()
-            if remote_version != LOCAL_VERSION:
-                print(f"\n  ⚠️ Новая версия: {remote_version}. Обновляю...")
-                zip_url = "https://github.com/Vladimir-1337/VoiceAgent/archive/refs/heads/main.zip"
-                r_zip = requests.get(zip_url, timeout=30, allow_redirects=True)
-                if r_zip.status_code == 200:
-                    zip_path = "/storage/emulated/0/Download/update.zip"
-                    with open(zip_path, "wb") as f:
-                        f.write(r_zip.content)
-                    import zipfile, shutil
-                    tmp = "/storage/emulated/0/Download/update_tmp/"
-                    with zipfile.ZipFile(zip_path, "r") as zf:
-                        zf.extractall(tmp)
-                    target = "/storage/emulated/0/VoiceAgent/"
-                    # Сохраняем config.py
-                    backup_config = None
-                    config_path = os.path.join(target, "config.py")
-                    if os.path.exists(config_path):
-                        with open(config_path, "r") as f:
-                            backup_config = f.read()
-                    # Копируем ВСЕ файлы
-                    for root, dirs, files in os.walk(tmp):
-                        for fname in files:
-                            if fname.endswith((".py", ".json", ".txt", ".md")):
-                                src = os.path.join(root, fname)
-                                dst = os.path.join(target, fname)
-                                if fname == "config.py" and backup_config:
-                                    continue
-                                try:
-                                    with open(src, "r") as fsrc:
-                                        with open(dst, "w") as fdst:
-                                            fdst.write(fsrc.read())
-                                except:
-                                    pass
-                    # Восстанавливаем config.py
-                    if backup_config:
-                        with open(config_path, "w") as f:
-                            f.write(backup_config)
-                    # Чистим
-                    shutil.rmtree(tmp, ignore_errors=True)
-                    os.remove(zip_path)
-                    # Фиксируем версию
-                    with open("/storage/emulated/0/VoiceAgent/version.txt", "w") as f:
-                        f.write(remote_version)
-                    print(f"  ✅ Обновлено до {remote_version}.")
-                    print("  Регистрация сохранена.")
-                    input("\n  Нажмите Enter для перезапуска...")
-                    return
-            else:
-                print(f"  ✅ Версия {LOCAL_VERSION} — актуальна")
-    except:
-        pass  # Нет интернета или GitHub недоступен — работаем на текущей версии
-
-    print("\n" + "=" * 50)
-    print("  Все проверки завершены.")
-    print("  Нажмите Enter для продолжения...")
-    input()
-    
-    if need_register:
-        registered = check_registration()
-        if not registered:
-            print("\n  Регистрация не завершена. Выход.")
-            return
-
-    clear_screen()
-    print_header("Запуск")
+        passprint_header("Запуск")
     print("  🟢 Мониторинг запущен")
     print("=" * 50)
 
