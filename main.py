@@ -66,7 +66,7 @@ def clear_screen():
 # ======================================================================
 def print_header(section):
     print("=" * 50)
-    print(f"  ОРГАНАЙЗЕР v1.0.30 > {section}")
+    print(f"  ОРГАНАЙЗЕР v1.0.31 > {section}")
     print("=" * 50)
 
 
@@ -818,7 +818,7 @@ def main():
     clear_screen()
     print_header("Загрузка")
     print("  Проверка системы...")
-    
+    print("")
 
     import voice_config
     
@@ -832,140 +832,116 @@ def main():
             pass
     print("  ✅ Папка Recordings" if os.path.exists(rec_dir) else "  ❌ Папка Recordings")
     
-    print("  ⏳ Библиотеки — проверяем...", end="", flush=True)
+    # Библиотеки
+    print("  ⏳ Библиотеки...", end="", flush=True)
     try:
         import requests
-        print("  ✅ Библиотеки готовы              ")
+        print("\r  ✅ Библиотеки готовы              ")
     except ImportError:
-        print("  ⏳ Устанавливаю requests...", end="", flush=True)
+        print("\r  ⏳ Устанавливаю requests...", end="", flush=True)
         import subprocess, sys
         try:
             subprocess.check_call([sys.executable, "-m", "pip", "install", "requests", "-q"])
             import requests
-            print("  ✅ Библиотеки готовы              ")
+            print("\r  ✅ Библиотеки готовы              ")
         except:
-            print("  ⚠️ requests не установлен        ")
+            print("\r  ⚠️ requests не установлен        ")
     
-    print("  ⏳ VPS — проверяем...", end="", flush=True)
-    vps_ok = False
+    # VPS
+    print("  ⏳ VPS...", end="", flush=True)
     for attempt in range(5):
         try:
             requests.get(voice_config.SERVER_URL.replace("/voice", ""), timeout=3)
-            vps_ok = True
-            print(f"  ✅ VPS отвечает (попытка {attempt+1})   ")
+            print(f"\r  ✅ VPS отвечает (попытка {attempt+1})   ")
             break
         except:
-            print(f"  ⏳ VPS — попытка {attempt+1}/5...", end="", flush=True)
-            _time.sleep(1)
-    if not vps_ok:
-        print("  ⚠️ VPS не отвечает                ")
+            if attempt == 4:
+                print("\r  ⚠️ VPS не отвечает                ")
+            else:
+                _time.sleep(1)
     
-    print("  ⏳ Интернет — проверяем...", end="", flush=True)
-    net_ok = False
+    # Интернет
+    print("  ⏳ Интернет...", end="", flush=True)
     for attempt in range(5):
         try:
             requests.get("https://google.com", timeout=3)
-            net_ok = True
-            print(f"  ✅ Интернет (попытка {attempt+1})        ")
+            print(f"\r  ✅ Интернет (попытка {attempt+1})        ")
             break
         except:
-            print(f"  ⏳ Интернет — попытка {attempt+1}/5...", end="", flush=True)
-            _time.sleep(1)
-    if not net_ok:
-        print("  ⚠️ Нет интернета                  ")
-        print("
-  Проверьте подключение к интернету")
-        print("  и перезапустите приложение.")
-        print("
-  Нажмите Enter для выхода...")
-        input()
-        return
+            if attempt == 4:
+                print("\r  ⚠️ Нет интернета                  ")
+                print("\n  Проверьте интернет и перезапустите.")
+                input("\n  Нажмите Enter...")
+                return
+            else:
+                _time.sleep(1)
     
-    print("  ⏳ Календарь — проверяем...", end="", flush=True)
-    cal_ok = False
+    # Календарь
+    print("  ⏳ Календарь...", end="", flush=True)
     for attempt in range(5):
         try:
             from caldav_client import get_calendar_url
-            url = get_calendar_url()
-            if url:
-                cal_ok = True
-                print(f"  ✅ Календарь доступен (попытка {attempt+1})   ")
+            if get_calendar_url():
+                print(f"\r  ✅ Календарь доступен (попытка {attempt+1})   ")
                 break
         except:
             pass
-        if not cal_ok:
-            print(f"  ⏳ Календарь — попытка {attempt+1}/5...", end="", flush=True)
+        if attempt == 4:
+            print("\r  ⚠️ Календарь не отвечает           ")
+        else:
             _time.sleep(1)
-    if not cal_ok:
-        print("  ⚠️ Календарь не отвечает           ")
     
-    print("  ⏳ Поддержка — проверяем...", end="", flush=True)
-    support_ok = False
+    # Поддержка
+    print("  ⏳ Поддержка...", end="", flush=True)
     for attempt in range(3):
         try:
             r = requests.post("http://157.22.202.232:8200/report", data="ping", timeout=5)
             if r.status_code in (200, 500):
-                support_ok = True
-                print(f"  ✅ Поддержка: В СЕТИ (попытка {attempt+1})   ")
+                print(f"\r  ✅ Поддержка: В СЕТИ (попытка {attempt+1})   ")
                 break
         except:
-            print(f"  ⏳ Поддержка — попытка {attempt+1}/3...", end="", flush=True)
-            _time.sleep(1)
-    if not support_ok:
-        print("  ⚠️ Поддержка: ОФФЛАЙН              ")
+            if attempt == 2:
+                print("\r  ⚠️ Поддержка: ОФФЛАЙН              ")
+            else:
+                _time.sleep(1)
     
-    LOCAL_VERSION = "1.0.30"
-    print("  ⏳ Обновления — проверяем...", end="", flush=True)
+    # Версия
+    LOCAL_VERSION = "1.0.31"
+    print("  ⏳ Версия...", end="", flush=True)
     try:
-        r_ver = requests.get(
-            "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt",
-            timeout=5
-        )
+        r_ver = requests.get("https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt", timeout=5)
         if r_ver.status_code == 200:
             remote = r_ver.text.strip()
             if remote == LOCAL_VERSION:
-                print(f"  ✅ Версия {LOCAL_VERSION} — актуальна      ")
+                print(f"\r  ✅ Версия {LOCAL_VERSION} — актуальна      ")
             else:
-                print(f"  🆕 Новая версия: {remote}              ")
+                print(f"\r  🆕 Новая версия: {remote}              ")
         else:
-            print(f"  ⚠️ Не удалось проверить обновления       ")
+            print(f"\r  ⚠️ Не удалось проверить обновления       ")
     except:
-        print(f"  ⚠️ Не удалось проверить обновления       ")
+        print(f"\r  ⚠️ Не удалось проверить обновления       ")
     
-    need_register = (need_register = (
+    need_register = (
         voice_config.YANDEX_APP_PASSWORD == "введите_пароль_приложения" or
         voice_config.YANDEX_APP_PASSWORD == "" or
         voice_config.YANDEX_LOGIN == "введите_логин@yandex.ru" or
         voice_config.YANDEX_LOGIN == ""
     )
     print("  ⚠️ Нужна регистрация" if need_register else "  ✅ Регистрация пройдена")
-            
-    # Показываем версию
-    try:
-        r_ver = requests.get(
-            "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt",
-            timeout=5
-        )
-        if r_ver.status_code == 200:
-            remote_version = r_ver.text.strip()
-            if remote_version != LOCAL_VERSION:
-                print(f"\n  ⚠️ Новая версия: {remote_version}. Обновляю...")
-                r_main = requests.get(
-                    "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/main.py",
-                    timeout=10
-                )
-                if r_main.status_code == 200:
-                    with open("/storage/emulated/0/VoiceAgent/main.py", "w", encoding="utf-8") as f:
-                        f.write(r_main.text)
-                    with open("/storage/emulated/0/VoiceAgent/version.txt", "w") as f:
-                        f.write(remote_version)
-                    print(f"  ✅ Обновлено до {remote_version}. Перезапустите.")
-                    input("\n  Нажмите Enter для перезапуска...")
-                    return
-            else:
-                print(f"  ✅ Версия {LOCAL_VERSION} — актуальна")
-    except:
-        print_header("Запуск")
+
+    print("\n" + "=" * 50)
+    print("  Все проверки завершены.")
+    print("  Нажмите Enter для продолжения...")
+    input()
+    
+    if need_register:
+        registered = check_registration()
+        if not registered:
+            print("\n  Регистрация не завершена. Выход.")
+            return
+
+    clear_screen()
+    print_header("Запуск")
     print("  🟢 Мониторинг запущен")
     print("=" * 50)
 
