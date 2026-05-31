@@ -1,18 +1,22 @@
-# updater.py — АВТООБНОВЛЕНИЕ (отдельный модуль)
-# Вызывается из main.py при старте.
-# Проверяет GitHub, сравнивает версии, обновляет ВСЕ файлы.
-# config.py НЕ трогает. Регистрация сохраняется.
-
+# updater.py — АВТООБНОВЛЕНИЕ v1.0.35
 import os, shutil, zipfile
 
-LOCAL_VERSION = "1.0.33"
 GITHUB_USER = "Vladimir-1337"
 REPO = "VoiceAgent"
 
 def check():
-    """Проверяет обновления. Если есть — обновляет и возвращает True."""
     try:
         import requests as _r
+        
+        # Читаем ЛОКАЛЬНУЮ версию
+        local_path = "/storage/emulated/0/VoiceAgent/version.txt"
+        try:
+            with open(local_path, "r") as f:
+                local_ver = f.read().strip()
+        except:
+            local_ver = "0.0"
+        
+        # Читаем УДАЛЁННУЮ версию
         r_ver = _r.get(
             f"https://raw.githubusercontent.com/{GITHUB_USER}/{REPO}/main/version.txt",
             timeout=5
@@ -21,37 +25,37 @@ def check():
             return False
         
         remote = r_ver.text.strip()
-        if remote == LOCAL_VERSION:
-            return False  # Версии совпадают
+        if remote == local_ver:
+            return False
         
         print(f"\n  ⚠️ Новая версия: {remote}. Обновляю...")
         
         # Качаем ZIP
-        zip_url = f"https://github.com/{GITHUB_USER}/{REPO}/archive/refs/heads/main.zip"
-        r_zip = _r.get(zip_url, timeout=30, allow_redirects=True)
+        r_zip = _r.get(
+            f"https://github.com/{GITHUB_USER}/{REPO}/archive/refs/heads/main.zip",
+            timeout=30, allow_redirects=True
+        )
         if r_zip.status_code != 200:
-            print("  ❌ Не удалось скачать обновление.")
             return False
         
-        # Сохраняем ZIP
         zip_path = "/storage/emulated/0/Download/update.zip"
         with open(zip_path, "wb") as f:
             f.write(r_zip.content)
         
-        # Распаковываем
         tmp = "/storage/emulated/0/Download/update_tmp/"
         with zipfile.ZipFile(zip_path, "r") as zf:
             zf.extractall(tmp)
         
-        # Сохраняем config.py
         target = "/storage/emulated/0/VoiceAgent/"
+        
+        # Сохраняем config.py
         backup_config = None
         config_path = os.path.join(target, "config.py")
         if os.path.exists(config_path):
             with open(config_path, "r") as f:
                 backup_config = f.read()
         
-        # Копируем ВСЕ файлы (config.py не трогаем)
+        # Копируем ВСЕ файлы
         for root, dirs, files in os.walk(tmp):
             for fname in files:
                 if fname.endswith((".py", ".json", ".txt", ".md")):
@@ -71,16 +75,15 @@ def check():
             with open(config_path, "w") as f:
                 f.write(backup_config)
         
+        # ОБНОВЛЯЕМ ЛОКАЛЬНЫЙ version.txt
+        with open(local_path, "w") as f:
+            f.write(remote)
+        
         # Чистим
         shutil.rmtree(tmp, ignore_errors=True)
         os.remove(zip_path)
         
-        # Фиксируем версию
-        with open(os.path.join(target, "version.txt"), "w") as f:
-            f.write(remote)
-        
-        print(f"  ✅ Обновлено до {remote}. Регистрация сохранена.")
+        print(f"  ✅ Обновлено до {remote}.")
         return True
-    
     except:
-        return False  # GitHub недоступен — работаем на текущей версии
+        return False
