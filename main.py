@@ -66,7 +66,7 @@ def clear_screen():
 # ======================================================================
 def print_header(section):
     print("=" * 50)
-    print(f"  ОРГАНАЙЗЕР v1.0.38 > {section}")
+    print(f"  ОРГАНАЙЗЕР v1.0.39 > {section}")
     print("=" * 50)
 
 
@@ -842,7 +842,7 @@ def main():
     print("")
 
     import voice_config
-    LOCAL_VERSION = "1.0.38"
+    LOCAL_VERSION = "1.0.39"
     
     print("  [1] Папки...", end="", flush=True)
     v_ok = _os.path.exists("/storage/emulated/0/VoiceAgent")
