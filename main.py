@@ -66,7 +66,7 @@ def clear_screen():
 # ======================================================================
 def print_header(section):
     print("=" * 50)
-    print(f"  ОРГАНАЙЗЕР v1.0.39 > {section}")
+    print(f"  ОРГАНАЙЗЕР v1.0.40 > {section}")
     print("=" * 50)
 
 
@@ -827,8 +827,7 @@ def main():
     try:
         import updater
         if updater.check():
-            print("\n  Нажмите Enter для перезапуска...")
-            input()
+            print("\n  Обновление запущено. Перезапустите main.py после завершения.")
             return
     except:
         pass
@@ -842,7 +841,7 @@ def main():
     print("")
 
     import voice_config
-    LOCAL_VERSION = "1.0.39"
+    LOCAL_VERSION = "1.0.40"
     
     print("  [1] Папки...", end="", flush=True)
     v_ok = _os.path.exists("/storage/emulated/0/VoiceAgent")
