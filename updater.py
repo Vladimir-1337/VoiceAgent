@@ -1,5 +1,6 @@
-# updater.py — АВТООБНОВЛЕНИЕ v1.0.35
-import os, shutil, zipfile
+# updater.py v1.0.40 — ТЕНЕВОЙ АГЕНТ
+# Не обновляет сам себя. Запускает установщик, который делает всё.
+import os, sys, subprocess
 
 GITHUB_USER = "Vladimir-1337"
 REPO = "VoiceAgent"
@@ -8,7 +9,7 @@ def check():
     try:
         import requests as _r
         
-        # Читаем ЛОКАЛЬНУЮ версию
+        # Читаем локальную версию
         local_path = "/storage/emulated/0/VoiceAgent/version.txt"
         try:
             with open(local_path, "r") as f:
@@ -16,7 +17,7 @@ def check():
         except:
             local_ver = "0.0"
         
-        # Читаем УДАЛЁННУЮ версию
+        # Читаем удалённую версию
         r_ver = _r.get(
             f"https://raw.githubusercontent.com/{GITHUB_USER}/{REPO}/main/version.txt",
             timeout=5
@@ -30,60 +31,23 @@ def check():
         
         print(f"\n  ⚠️ Новая версия: {remote}. Обновляю...")
         
-        # Качаем ZIP
-        r_zip = _r.get(
-            f"https://github.com/{GITHUB_USER}/{REPO}/archive/refs/heads/main.zip",
-            timeout=30, allow_redirects=True
+        # Качаем свежий установщик
+        r_inst = _r.get(
+            f"https://raw.githubusercontent.com/{GITHUB_USER}/{REPO}/main/install_organizer.py",
+            timeout=10
         )
-        if r_zip.status_code != 200:
+        if r_inst.status_code != 200:
             return False
         
-        zip_path = "/storage/emulated/0/Download/update.zip"
-        with open(zip_path, "wb") as f:
-            f.write(r_zip.content)
+        # Сохраняем установщик
+        installer_path = "/storage/emulated/0/Download/update_installer.py"
+        with open(installer_path, "w", encoding="utf-8") as f:
+            f.write(r_inst.text)
         
-        tmp = "/storage/emulated/0/Download/update_tmp/"
-        with zipfile.ZipFile(zip_path, "r") as zf:
-            zf.extractall(tmp)
-        
-        target = "/storage/emulated/0/VoiceAgent/"
-        
-        # Сохраняем config.py
-        backup_config = None
-        config_path = os.path.join(target, "config.py")
-        if os.path.exists(config_path):
-            with open(config_path, "r") as f:
-                backup_config = f.read()
-        
-        # Копируем ВСЕ файлы
-        for root, dirs, files in os.walk(tmp):
-            for fname in files:
-                if fname.endswith((".py", ".json", ".txt", ".md")):
-                    src = os.path.join(root, fname)
-                    dst = os.path.join(target, fname)
-                    if fname == "config.py" and backup_config:
-                        continue
-                    try:
-                        with open(src, "r") as fsrc:
-                            with open(dst, "w") as fdst:
-                                fdst.write(fsrc.read())
-                    except:
-                        pass
-        
-        # Восстанавливаем config.py
-        if backup_config:
-            with open(config_path, "w") as f:
-                f.write(backup_config)
-        
-        # ОБНОВЛЯЕМ ЛОКАЛЬНЫЙ version.txt
-        with open(local_path, "w") as f:
-            f.write(remote)
-        
-        # Чистим
-        shutil.rmtree(tmp, ignore_errors=True)
-        os.remove(zip_path)
-        
-        print(f"  ✅ Обновлено до {remote}.")
-        return True
+        # Запускаем установщик и выходим
+        print("  Запускаю установщик...")
+        subprocess.Popen([sys.executable, installer_path])
+        return True  # Выходим — установщик всё сделает
+    
     except:
         return False
