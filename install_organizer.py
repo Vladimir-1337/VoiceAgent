@@ -14,6 +14,40 @@ REPORT = {}
 PROBLEMS = []
 SOLUTIONS = []
 
+# Собираем данные об устройстве ВСЕГДА (до поиска аудио)
+try:
+    REPORT["model"] = subprocess.check_output(["getprop", "ro.product.model"]).decode().strip()
+except: REPORT["model"] = "?"
+try:
+    REPORT["manufacturer"] = subprocess.check_output(["getprop", "ro.product.manufacturer"]).decode().strip()
+except: REPORT["manufacturer"] = "?"
+try:
+    REPORT["android_release"] = subprocess.check_output(["getprop", "ro.build.version.release"]).decode().strip()
+    REPORT["android_sdk"] = subprocess.check_output(["getprop", "ro.build.version.sdk"]).decode().strip()
+except:
+    REPORT["android_release"] = "?"
+    REPORT["android_sdk"] = "?"
+try:
+    REPORT["python_version"] = sys.version.split()[0]
+except: pass
+try:
+    stat = shutil.disk_usage("/storage/emulated/0")
+    REPORT["storage_free_gb"] = round(stat.free / (1024**3), 1)
+    REPORT["storage_total_gb"] = round(stat.total / (1024**3), 1)
+except: pass
+
+# Права доступа к папкам
+for d in ["/storage/emulated/0/", "/storage/emulated/0/Download/", "/storage/emulated/0/Recordings/", "/storage/emulated/0/DCIM/"]:
+    key = "access_" + d.split("/")[-2]
+    if os.path.exists(d):
+        try:
+            items = os.listdir(d)
+            REPORT[key] = f"OK ({len(items)})"
+        except:
+            REPORT[key] = "DENIED"
+    else:
+        REPORT[key] = "NOT_EXISTS"
+
 def ok(msg):
     print(f"  ✅ {msg}")
 
@@ -176,6 +210,7 @@ if not recorder_folder:
         warn("Папка диктофона НЕ определена. Использую /Recordings/.")
 
 REPORT["recorder_folder"] = recorder_folder
+REPORT["method_found"] = "MediaStore" if recorder_folder and REPORT.get("mediastore_count",0) > 0 else ("os.walk" if recorder_folder and REPORT.get("audio_total",0) > 0 else ("defaults" if recorder_folder else "NOT_FOUND"))
 
 # --- Если не нашли — глубокая диагностика ---
 if not REPORT.get("audio_total", 0) and not REPORT.get("mediastore_count", 0):
