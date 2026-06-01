@@ -66,7 +66,7 @@ def clear_screen():
 # ======================================================================
 def print_header(section):
     print("=" * 50)
-    print(f"  ОРГАНАЙЗЕР v1.0.37 > {section}")
+    print(f"  ОРГАНАЙЗЕР v1.0.38 > {section}")
     print("=" * 50)
 
 
@@ -105,7 +105,16 @@ def process_new_files():
         print(f"\n🎙️ Обрабатываю: {filename}")
 
         text = None
-        if send_latest_recording:
+        # Быстрая проверка VPS перед отправкой (не ждать таймаут)
+        vps_alive = False
+        try:
+            import requests as _rcheck
+            _rcheck.get(voice_config.SERVER_URL.replace("/voice", ""), timeout=2)
+            vps_alive = True
+        except:
+            pass
+        
+        if send_latest_recording and vps_alive:
             text, error = send_latest_recording()
             if error:
                 if "длинная" in error.lower() or "длитель" in error.lower():
@@ -833,7 +842,7 @@ def main():
     print("")
 
     import voice_config
-    LOCAL_VERSION = "1.0.37"
+    LOCAL_VERSION = "1.0.38"
     
     print("  [1] Папки...", end="", flush=True)
     v_ok = _os.path.exists("/storage/emulated/0/VoiceAgent")
