@@ -66,7 +66,7 @@ def clear_screen():
 # ======================================================================
 def print_header(section):
     print("=" * 50)
-    print(f"  ОРГАНАЙЗЕР v1.0.35 > {section}")
+    print(f"  ОРГАНАЙЗЕР v1.0.37 > {section}")
     print("=" * 50)
 
 
@@ -833,7 +833,7 @@ def main():
     print("")
 
     import voice_config
-    LOCAL_VERSION = "1.0.35"
+    LOCAL_VERSION = "1.0.37"
     
     print("  [1] Папки...", end="", flush=True)
     v_ok = _os.path.exists("/storage/emulated/0/VoiceAgent")
@@ -913,6 +913,33 @@ def main():
                 _time.sleep(1)
     
     print(f"  [7] Версия {LOCAL_VERSION} — установлена")
+    
+    # Создаём недостающие JSON-файлы (чтобы меню не зависало)
+    print("  [9] JSON-файлы...", end="", flush=True)
+    json_files = {
+        "ready_tasks.json": [],
+        "raw_tasks.json": [],
+        "user_profile.json": {"city": "", "places": [], "people": [], "anchors": {}, "people_anchors": {}, "work": ""},
+        "seen_files.json": []
+    }
+    import json as _json
+    for jf, default in json_files.items():
+        path = os.path.join("/storage/emulated/0/VoiceAgent", jf)
+        if not os.path.exists(path):
+            for attempt in range(3):
+                try:
+                    with open(path, "w") as f:
+                        _json.dump(default, f)
+                    print(f"\r  ✅ {jf} создан (попытка {attempt+1})              ")
+                    break
+                except:
+                    if attempt == 2:
+                        print(f"\r  ⚠️ {jf} НЕ создан                          ")
+                    else:
+                        time.sleep(1)
+        else:
+            print(f"\r  ✅ {jf} уже существует                        ")
+    print("\r  ✅ JSON-файлы готовы                            ")
     
     need_register = (
         voice_config.YANDEX_APP_PASSWORD == "введите_пароль_приложения" or
