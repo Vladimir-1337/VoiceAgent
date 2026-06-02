@@ -401,6 +401,8 @@ def distribute(remainder):
     if not isinstance(invite, bool):
         invite = False
     
+    invite_email = result.get("invite_email", "").strip()
+    
     duration = result.get("duration")
     if duration is not None and not isinstance(duration, int):
         try:
@@ -415,6 +417,7 @@ def distribute(remainder):
         "slot": slot,
         "third_party": third_party,
         "invite": invite,
+        "invite_email": invite_email,
         "duration": duration,
         "description": description
     }
@@ -500,6 +503,7 @@ def merge_task(intent, distributed, items=None):
     # third_party и invite: приоритет у парсера (intent), fallback на AI (distributed)
     third_party = intent.get("third_party", "") or distributed.get("third_party", "")
     invite = intent.get("invite", False) or distributed.get("invite", False)
+    invite_email = intent.get("invite_email", "") or distributed.get("invite_email", "")
     
     task = {
         "date": intent.get("date", ""),
@@ -512,6 +516,7 @@ def merge_task(intent, distributed, items=None):
         "slot": distributed.get("slot", ""),
         "third_party": third_party,
         "invite": invite,
+        "invite_email": invite_email,
         "caldav_uid": "",
         "exported": False
     }
