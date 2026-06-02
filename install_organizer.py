@@ -1,11 +1,9 @@
-# install_organizer.py — ЛЁГКИЙ УСТАНОВЩИК
-# 1. Сохраняет config.py
-# 2. Удаляет старую папку
-# 3. Качает и распаковывает новую версию
-# 4. Восстанавливает config.py
-# 5. Запускает диагностику и отправляет отчёт
-# 6. Сообщает об успехе
-import sys, os, subprocess, time, shutil, zipfile
+# install_organizer.py — УСТАНОВЩИК ОРГАНАЙЗЕРА v1.0.43
+import sys, os, subprocess, time, shutil, json, zipfile
+
+print("=" * 60)
+print(f"  УСТАНОВЩИК ОРГАНАЙЗЕРА v1.0.43")
+print("=" * 60)
 
 TARGET = "/storage/emulated/0/VoiceAgent"
 GITHUB_URL = "https://github.com/Vladimir-1337/VoiceAgent/archive/refs/heads/main.zip"
@@ -14,15 +12,6 @@ def log(msg):
     print(f"  {msg}")
 
 # Узнаём актуальную версию с GitHub
-REMOTE_VERSION = "?"
-try:
-    import requests as _rv
-    rv = _rv.get("https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt", timeout=5)
-    if rv.status_code == 200:
-        REMOTE_VERSION = rv.text.strip()
-except:
-    pass
-
 log(f"Установка версии: {REMOTE_VERSION}")
 
 def try_get(url, retries=3):
