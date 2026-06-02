@@ -146,7 +146,8 @@ def create_event(task):
         "end":         end,
         "calendarUrl": calendar_url,
         "description": _build_description(task),
-        "location":    task.get("place", "")
+        "location":    task.get("place", ""),
+        "attendee":    [{"email": task["invite_email"]}] if task.get("invite") and task.get("invite_email") else []
     }
     rrule = build_rrule(task.get("repeat", {}))
     if rrule:
