@@ -119,5 +119,4 @@ except:
 # ШАГ 6: Запускаем main.py
 log("[6/6] Запускаю программу...")
 # ═══════════════════════════════
-log("✅ Готово! Программа запущена.")
-subprocess.Popen([sys.executable, os.path.join(TARGET, "main.py")])
+log("✅ Установка завершена! Откройте main.py в Pydroid и нажмите Run.")
