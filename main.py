@@ -825,7 +825,6 @@ def check_registration():
 
 def main():
     import time as _time
-    import time
     import os as _os
     
     clear_screen()
@@ -836,6 +835,7 @@ def main():
     import voice_config
     LOCAL_VERSION = "1.0.43"
     
+    # [1] Папки
     print("  [1] Папки...", end="", flush=True)
     v_ok = _os.path.exists("/storage/emulated/0/VoiceAgent")
     r_ok = _os.path.exists(voice_config.RECORDINGS_DIR)
@@ -845,6 +845,7 @@ def main():
         _os.makedirs(voice_config.RECORDINGS_DIR, exist_ok=True)
     print(f"\r  ✅ Папки готовы                    ")
     
+    # [2] Библиотеки
     print("  [2] Библиотеки...", end="", flush=True)
     try:
         import requests
@@ -859,11 +860,14 @@ def main():
         except:
             print(f"\r  ⚠️ requests не установлен          ")
     
+    # [3] VPS + замер времени
     print("  [3] VPS...", end="", flush=True)
     for attempt in range(5):
         try:
+            t_start = _time.time()
             requests.get(voice_config.SERVER_URL.replace("/voice", ""), timeout=3)
-            print(f"\r  ✅ VPS отвечает                     ")
+            t_elapsed = _time.time() - t_start
+            print(f"\r  ✅ VPS отвечает ({t_elapsed:.1f} сек, попытка {attempt+1})   ")
             break
         except:
             if attempt == 4:
@@ -871,11 +875,34 @@ def main():
             else:
                 _time.sleep(1)
     
-    print("  [4] Интернет...", end="", flush=True)
+    # [4] Whisper + замер времени
+    print("  [4] Whisper...", end="", flush=True)
+    for attempt in range(3):
+        try:
+            t_start = _time.time()
+            r = requests.post(voice_config.SERVER_URL, 
+                            files={"file": ("test.m4a", b"", "audio/mp4")},
+                            timeout=5)
+            t_elapsed = _time.time() - t_start
+            if r.status_code in (200, 400):
+                print(f"\r  ✅ Whisper отвечает ({t_elapsed:.1f} сек, попытка {attempt+1})   ")
+                if t_elapsed > 3:
+                    print("  ⚠️ Whisper МЕДЛЕННЫЙ — меню может тормозить")
+                break
+        except:
+            if attempt == 2:
+                print(f"\r  ⚠️ Whisper не отвечает               ")
+            else:
+                _time.sleep(1)
+    
+    # [5] Интернет + замер времени
+    print("  [5] Интернет...", end="", flush=True)
     for attempt in range(5):
         try:
+            t_start = _time.time()
             requests.get("https://google.com", timeout=3)
-            print(f"\r  ✅ Интернет                         ")
+            t_elapsed = _time.time() - t_start
+            print(f"\r  ✅ Интернет ({t_elapsed:.1f} сек, попытка {attempt+1})        ")
             break
         except:
             if attempt == 4:
@@ -886,7 +913,8 @@ def main():
             else:
                 _time.sleep(1)
     
-    print("  [5] Календарь...", end="", flush=True)
+    # [6] Календарь
+    print("  [6] Календарь...", end="", flush=True)
     for attempt in range(5):
         try:
             from caldav_client import get_calendar_url
@@ -900,7 +928,8 @@ def main():
         else:
             _time.sleep(1)
     
-    print("  [6] Поддержка...", end="", flush=True)
+    # [7] Поддержка
+    print("  [7] Поддержка...", end="", flush=True)
     for attempt in range(3):
         try:
             r = requests.post("http://157.22.202.232:8200/report", data="ping", timeout=5)
@@ -913,9 +942,36 @@ def main():
             else:
                 _time.sleep(1)
     
-    print(f"  [7] Версия {LOCAL_VERSION} — установлена")
+    # [8] Обновления — проверяет GitHub и доступность установщика
+    print("  [8] Обновления...", end="", flush=True)
+    try:
+        r_ver = requests.get(
+            "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt",
+            timeout=5
+        )
+        if r_ver.status_code == 200:
+            remote = r_ver.text.strip()
+            if remote == LOCAL_VERSION:
+                print(f"\r  ✅ Версия {LOCAL_VERSION} — последняя      ")
+            else:
+                # Проверяем, доступен ли установщик
+                try:
+                    r_inst = requests.head(
+                        "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/install_organizer.py",
+                        timeout=5
+                    )
+                    if r_inst.status_code == 200:
+                        print(f"\r  🆕 Новая версия: {remote}. Запустите установщик.   ")
+                    else:
+                        print(f"\r  🆕 Новая версия: {remote}. Установщик недоступен.  ")
+                except:
+                    print(f"\r  🆕 Новая версия: {remote}. Запустите установщик.   ")
+        else:
+            print(f"\r  ⚠️ Не удалось проверить обновления       ")
+    except:
+        print(f"\r  ⚠️ Не удалось проверить обновления       ")
     
-    # Создаём недостающие JSON-файлы (чтобы меню не зависало)
+    # [9] JSON-файлы
     print("  [9] JSON-файлы...", end="", flush=True)
     json_files = {
         "ready_tasks.json": [],
@@ -937,7 +993,7 @@ def main():
                     if attempt == 2:
                         print(f"\r  ⚠️ {jf} НЕ создан                          ")
                     else:
-                        time.sleep(1)
+                        _time.sleep(1)
         else:
             print(f"\r  ✅ {jf} уже существует                        ")
     print("\r  ✅ JSON-файлы готовы                            ")
@@ -948,7 +1004,7 @@ def main():
         voice_config.YANDEX_LOGIN == "введите_логин@yandex.ru" or
         voice_config.YANDEX_LOGIN == ""
     )
-    print(f"  [8] {'⚠️ Нужна регистрация' if need_register else '✅ Регистрация пройдена'}")
+    print(f"  [10] {'⚠️ Нужна регистрация' if need_register else '✅ Регистрация пройдена'}")
 
     print("\n" + "=" * 50)
     print("  Все проверки завершены.")
@@ -971,8 +1027,6 @@ def main():
 
     main_menu()
     print("До свидания!")
-
-
 
 if __name__ == "__main__":
     BASE_DIR = "/storage/emulated/0/VoiceAgent"
