@@ -7,6 +7,9 @@
 import sys, os, subprocess, time, shutil, json, zipfile
 
 TARGET = "/storage/emulated/0/VoiceAgent"
+
+def log(msg):
+    print(f"  {msg}")
 GITHUB_URL = "https://github.com/Vladimir-1337/VoiceAgent/archive/refs/heads/main.zip"
 
 def try_get(url, retries=3):
@@ -21,8 +24,8 @@ def try_get(url, retries=3):
         time.sleep(2)
     return None
 
-# ═══════════════════════════════
 # ШАГ 1: Сохраняем config.py
+log("[1/6] Сохраняю config.py...")
 # ═══════════════════════════════
 backup = None
 config_path = os.path.join(TARGET, "config.py")
@@ -30,8 +33,8 @@ if os.path.exists(config_path):
     with open(config_path, "r") as f:
         backup = f.read()
 
-# ═══════════════════════════════
 # ШАГ 2: Удаляем старую папку
+log("[2/6] Удаляю старую версию...")
 # ═══════════════════════════════
 if os.path.exists(TARGET):
     for root, dirs, files in os.walk(TARGET, topdown=False):
@@ -41,8 +44,8 @@ if os.path.exists(TARGET):
             os.rmdir(os.path.join(root, name))
     os.rmdir(TARGET)
 
-# ═══════════════════════════════
 # ШАГ 3: Качаем и распаковываем
+log("[3/6] Скачиваю новую версию...")
 # ═══════════════════════════════
 r = try_get(GITHUB_URL)
 if not r:
@@ -57,8 +60,8 @@ tmp = "/storage/emulated/0/Download/install_tmp/"
 with zipfile.ZipFile(zip_path, "r") as zf:
     zf.extractall(tmp)
 
-# ═══════════════════════════════
 # ШАГ 4: Устанавливаем файлы
+log("[4/6] Устанавливаю файлы...")
 # ═══════════════════════════════
 os.makedirs(TARGET, exist_ok=True)
 
@@ -94,8 +97,8 @@ os.makedirs("/storage/emulated/0/Recordings/", exist_ok=True)
 shutil.rmtree(tmp, ignore_errors=True)
 os.remove(zip_path)
 
-# ═══════════════════════════════
 # ШАГ 5: Отправляем отчёт
+log("[5/6] Отправляю отчёт...")
 # ═══════════════════════════════
 report = {"model": "?", "android": "?", "sdk": "?"}
 for prop, key in [("ro.product.model", "model"), ("ro.build.version.release", "android"), ("ro.build.version.sdk", "sdk")]:
@@ -113,7 +116,8 @@ try:
 except:
     pass
 
-# ═══════════════════════════════
 # ШАГ 6: Запускаем main.py
+log("[6/6] Запускаю программу...")
 # ═══════════════════════════════
+log("✅ Готово! Программа запущена.")
 subprocess.Popen([sys.executable, os.path.join(TARGET, "main.py")])
