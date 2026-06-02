@@ -66,7 +66,7 @@ def clear_screen():
 # ======================================================================
 def print_header(section):
     print("=" * 50)
-    print(f"  ОРГАНАЙЗЕР v1.0.43 > {section}")
+    print(f"  ОРГАНАЙЗЕР v1.0.44 > {section}")
     print("=" * 50)
 
 
@@ -303,7 +303,6 @@ def main_menu():
 
         elif choice == "5":
             import time as _time
-    import time
             log_file = "/storage/emulated/0/VoiceAgent/monitor.log"
             last_size = 0
             task_index = -1
@@ -359,7 +358,7 @@ def main_menu():
                         print("  ℹ️  Enter — выход")
                         print("-" * 50)
                     
-                    elif key == "0":  # хотфикс 1.0.1: поддержка без задач
+                    elif key == "0" and all_tasks and task_index >= 0:
                         clear_screen()
                         print_header("Жалоба на задачу")
                         print(f"  📋 Задача: {all_tasks[task_index]['title'][:60]}")
@@ -833,7 +832,7 @@ def main():
     print("")
 
     import voice_config
-    LOCAL_VERSION = "1.0.43"
+    LOCAL_VERSION = "1.0.44"
     
     # [1] Папки
     print("  [1] Папки...", end="", flush=True)
