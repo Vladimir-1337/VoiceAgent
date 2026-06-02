@@ -66,7 +66,7 @@ def clear_screen():
 # ======================================================================
 def print_header(section):
     print("=" * 50)
-    print(f"  ОРГАНАЙЗЕР v1.0.42 > {section}")
+    print(f"  ОРГАНАЙЗЕР v1.0.43 > {section}")
     print("=" * 50)
 
 
@@ -303,6 +303,7 @@ def main_menu():
 
         elif choice == "5":
             import time as _time
+    import time
             log_file = "/storage/emulated/0/VoiceAgent/monitor.log"
             last_size = 0
             task_index = -1
@@ -824,6 +825,7 @@ def check_registration():
 
 def main():
     import time as _time
+    import time
     import os as _os
     
     clear_screen()
@@ -832,7 +834,7 @@ def main():
     print("")
 
     import voice_config
-    LOCAL_VERSION = "1.0.42"
+    LOCAL_VERSION = "1.0.43"
     
     print("  [1] Папки...", end="", flush=True)
     v_ok = _os.path.exists("/storage/emulated/0/VoiceAgent")
