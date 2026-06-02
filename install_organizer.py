@@ -2,7 +2,7 @@
 import sys, os, subprocess, time, shutil, json, zipfile
 
 print("=" * 60)
-print("  УСТАНОВЩИК ОРГАНАЙЗЕРА")
+print("  УСТАНОВЩИК ОРГАНАЙЗЕРА (v1.0.46)")
 print("=" * 60)
 
 TARGET = "/storage/emulated/0/VoiceAgent"
@@ -88,4 +88,4 @@ if os.path.exists(diag_path):
 
 # ШАГ 6
 log("[6/6] Готово!")
-log("Установка завершена! Откройте main.py и нажмите Run.")
+log("✅ Обновлено до v1.0.46! Откройте main.py и нажмите Run.")
