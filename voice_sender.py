@@ -52,6 +52,20 @@ def get_audio_duration(filepath):
 
 def send_latest_recording():
     """
+    Отправляет аудио на VPS. До 3 попыток.
+    Возвращает (text, error).
+    """
+    import time as _t
+    for attempt in range(3):
+        try:
+    """
+    Отправляет аудио на VPS. До 3 попыток.
+    Возвращает (text, error).
+    """
+    import time as _t
+    for attempt in range(3):
+        try:
+    """
     Отправляет последний .m4a файл на VPS для распознавания.
     Возвращает (текст, ошибка).
     """
