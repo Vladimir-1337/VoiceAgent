@@ -754,6 +754,7 @@ def parse_intent(text):
         "items": items,
         "third_party": person_val or "",        # F.3
         "invite": person_invite,                 # F.3
+        "invite_email": person_email or "",      # F.3
         "raw_text": raw_text
     }
 
@@ -924,61 +925,3 @@ def validate_intent(intent):
     
     
     
-def parse_intent(text):
-    """
-    Главная функция парсинга.
-    Работает как с триггером «напомни», так и без него.
-    """
-    # Сохраняем исходный текст до обработки
-    raw_text = text
-
-    # 1. Режим «Напомни»
-    has_remind, text = scan_remind(text)
-
-    # 2. Смещение напоминания
-    reminder_offset, text = scan_reminder_offset(text)
-
-    # 3. Абсолютное время
-    time_val, text = scan_absolute_time(text)
-
-    # 4. Дата
-    date_val, text = scan_date(text)
-
-    # 5. Место (якоря)
-    place_val, text = scan_place(text)
-
-    # 6. Предметы «с собой»
-    items, text = scan_items(text)
-
-    # 7. Название задачи (остаток)
-    title_val = extract_title(text)
-
-    # === СБОРКА РЕЗУЛЬТАТА ===
-    intent = {
-        "has_remind": has_remind,
-        "reminder_offset": reminder_offset,
-        "date": date_val,
-        "time": time_val,
-        "place": place_val,
-        "title": title_val,
-        "items": items,
-        "raw_text": raw_text
-    }
-
-    # === ВАЛИДАЦИЯ ===
-    is_valid = validate_intent(intent)
-    intent["is_valid"] = is_valid
-
-    # === КАКИХ ПОЛЕЙ НЕ ХВАТАЕТ ===
-    missing = []
-    if not date_val:
-        missing.append("date")
-    if not time_val:
-        missing.append("time")
-    if not place_val:
-        missing.append("place")
-    if not title_val:
-        missing.append("title")
-    intent["missing_fields"] = missing
-
-    return intent
