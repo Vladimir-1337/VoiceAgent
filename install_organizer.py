@@ -13,6 +13,18 @@ GITHUB_URL = "https://github.com/Vladimir-1337/VoiceAgent/archive/refs/heads/mai
 def log(msg):
     print(f"  {msg}")
 
+# Узнаём актуальную версию с GitHub
+REMOTE_VERSION = "?"
+try:
+    import requests as _rv
+    rv = _rv.get("https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt", timeout=5)
+    if rv.status_code == 200:
+        REMOTE_VERSION = rv.text.strip()
+except:
+    pass
+
+log(f"Установка версии: {REMOTE_VERSION}")
+
 def try_get(url, retries=3):
     import requests
     for a in range(retries):
@@ -101,4 +113,4 @@ if os.path.exists(diag_path):
 
 # ШАГ 6: Готово
 log("[6/6] Готово!")
-log("✅ Установка завершена! Откройте main.py в Pydroid и нажмите Run.")
+log(f"✅ Версия {REMOTE_VERSION} установлена! Откройте main.py и нажмите Run.")
