@@ -66,7 +66,7 @@ def clear_screen():
 # ======================================================================
 def print_header(section):
     print("=" * 50)
-    print(f"  ОРГАНАЙЗЕР v1.0.41 > {section}")
+    print(f"  ОРГАНАЙЗЕР v1.0.42 > {section}")
     print("=" * 50)
 
 
@@ -823,15 +823,6 @@ def check_registration():
 
 
 def main():
-    # Вызываем автообновление
-    try:
-        import updater
-        if updater.check():
-            print("\n  Обновление запущено. Перезапустите main.py после завершения.")
-            return
-    except:
-        pass
-    
     import time as _time
     import os as _os
     
@@ -841,7 +832,7 @@ def main():
     print("")
 
     import voice_config
-    LOCAL_VERSION = "1.0.41"
+    LOCAL_VERSION = "1.0.42"
     
     print("  [1] Папки...", end="", flush=True)
     v_ok = _os.path.exists("/storage/emulated/0/VoiceAgent")
