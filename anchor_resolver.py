@@ -51,7 +51,11 @@ def load_anchors():
         if address and city and city.lower() not in address.lower():
             address = f"{address}, {city}"
         elif not address:
-            address = city  # только город, если адрес не указан
+            coords = data.get("coords", "").strip()
+            if coords:
+                address = coords  # используем координаты как адрес
+            else:
+                address = city  # только город, если и координат нет
         
         # Основное название → адрес
         if main_name and address:
