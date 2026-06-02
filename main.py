@@ -66,7 +66,7 @@ def clear_screen():
 # ======================================================================
 def print_header(section):
     print("=" * 50)
-    print(f"  ОРГАНАЙЗЕР v1.0.45 > {section}")
+    print(f"  ОРГАНАЙЗЕР v1.0.46 > {section}")
     print("=" * 50)
 
 
@@ -823,7 +823,7 @@ def main():
     print("")
 
     import voice_config
-    LOCAL_VERSION = "1.0.45"
+    LOCAL_VERSION = "1.0.46"
     
     # [1] Папки
     print("  [1] Папки...", end="", flush=True)
