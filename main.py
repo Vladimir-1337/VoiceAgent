@@ -66,7 +66,7 @@ def clear_screen():
 # ======================================================================
 def print_header(section):
     print("=" * 50)
-    print(f"  ОРГАНАЙЗЕР v1.0.44 > {section}")
+    print(f"  ОРГАНАЙЗЕР v1.0.45 > {section}")
     print("=" * 50)
 
 
@@ -105,16 +105,7 @@ def process_new_files():
         print(f"\n🎙️ Обрабатываю: {filename}")
 
         text = None
-        # Быстрая проверка VPS перед отправкой (не ждать таймаут)
-        vps_alive = False
-        try:
-            import requests as _rcheck
-            _rcheck.get(voice_config.SERVER_URL.replace("/voice", ""), timeout=2)
-            vps_alive = True
-        except:
-            pass
-        
-        if send_latest_recording and vps_alive:
+        if send_latest_recording:
             text, error = send_latest_recording()
             if error:
                 if "длинная" in error.lower() or "длитель" in error.lower():
@@ -437,7 +428,7 @@ def main_menu():
                                     print(f"  📋 {stripped}")
                         
                         if not has_recent:
-                            print("  ⏳ Ожидание аудиозаписи...")
+                            pass  # спам убран
                         
                         print("-" * 50)
                         if all_tasks and task_index >= 0:
@@ -448,7 +439,7 @@ def main_menu():
                         pass
                     last_size = current_size
                 else:
-                    print("\r  ⏳ Ожидание аудиозаписи...   ", end="")
+                    pass  # спам убран
                 
                 _time.sleep(3)
 
@@ -832,7 +823,7 @@ def main():
     print("")
 
     import voice_config
-    LOCAL_VERSION = "1.0.44"
+    LOCAL_VERSION = "1.0.45"
     
     # [1] Папки
     print("  [1] Папки...", end="", flush=True)
