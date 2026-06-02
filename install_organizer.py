@@ -1,8 +1,18 @@
 # install_organizer.py — УСТАНОВЩИК ОРГАНАЙЗЕРА
 import sys, os, subprocess, time, shutil, json, zipfile
 
+# Получаем актуальную версию с GitHub
+REMOTE_VER = "?"
+try:
+    import requests as _rv
+    rv = _rv.get("https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt", timeout=5)
+    if rv.status_code == 200:
+        REMOTE_VER = rv.text.strip()
+except:
+    pass
+
 print("=" * 60)
-print("  УСТАНОВЩИК ОРГАНАЙЗЕРА (v1.0.46)")
+print(f"  УСТАНОВЩИК ОРГАНАЙЗЕРА (v{REMOTE_VER})")
 print("=" * 60)
 
 TARGET = "/storage/emulated/0/VoiceAgent"
@@ -88,4 +98,4 @@ if os.path.exists(diag_path):
 
 # ШАГ 6
 log("[6/6] Готово!")
-log("✅ Обновлено до v1.0.46! Откройте main.py и нажмите Run.")
+log(f"✅ Обновлено до v{REMOTE_VER}! Откройте main.py и нажмите Run.")
