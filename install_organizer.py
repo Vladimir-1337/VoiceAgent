@@ -1,101 +1,276 @@
-# install_organizer.py — УСТАНОВЩИК ОРГАНАЙЗЕРА
-import sys, os, subprocess, time, shutil, json, zipfile
+# install_organizer.py — УСТАНОВЩИК ОРГАНАЙЗЕРА (v2.0 — с защитами от катастроф)
+import sys
+import os
+import subprocess
+import time
+import shutil
+import zipfile
+import re
 
-# Получаем актуальную версию с GitHub
-REMOTE_VER = "?"
-try:
-    import requests as _rv
-    rv = _rv.get("https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt", timeout=5)
-    if rv.status_code == 200:
-        REMOTE_VER = rv.text.strip()
-except:
-    pass
-
-print("=" * 60)
-print(f"  УСТАНОВЩИК ОРГАНАЙЗЕРА (v{REMOTE_VER})")
-print("=" * 60)
-
+# ============================================================
+# КОНФИГУРАЦИЯ
+# ============================================================
 TARGET = "/storage/emulated/0/VoiceAgent"
+TARGET_NEW = "/storage/emulated/0/VoiceAgent_NEW"
+TARGET_OLD = "/storage/emulated/0/VoiceAgent_OLD"
+BACKUP_DIR = "/storage/emulated/0/Download"
+BACKUP_FILE = os.path.join(BACKUP_DIR, "voiceagent_config_backup.py")
 GITHUB_URL = "https://github.com/Vladimir-1337/VoiceAgent/archive/refs/heads/main.zip"
+VERSION_URL = "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt"
+MIN_FREE_SPACE_MB = 50
 
+REMOTE_VER = "?"
+RETRY_COUNT = 3
+RETRY_DELAY = [1, 2, 4]
+
+
+# ============================================================
+# УТИЛИТЫ
+# ============================================================
 def log(msg):
     print(f"  {msg}")
 
-# ШАГ 1
-log("[1/6] Сохраняю config.py...")
-backup = None
-config_path = os.path.join(TARGET, "config.py")
-if os.path.exists(config_path):
-    with open(config_path, "r") as f:
-        backup = f.read()
 
-# ШАГ 2
-log("[2/6] Удаляю старую версию...")
-if os.path.exists(TARGET):
-    for root, dirs, files in os.walk(TARGET, topdown=False):
-        for name in files:
-            os.remove(os.path.join(root, name))
-        for name in dirs:
-            os.rmdir(os.path.join(root, name))
-    os.rmdir(TARGET)
+def abort(msg, code=1):
+    print(f"\n  ❌ {msg}")
+    print("  Старая версия НЕ тронута.")
+    sys.exit(code)
 
-# ШАГ 3
-log("[3/6] Скачиваю новую версию...")
-import requests as _r
-r = _r.get(GITHUB_URL, timeout=30, allow_redirects=True)
-if r.status_code != 200:
-    log("Ошибка скачивания")
-    sys.exit(1)
 
-zip_path = "/storage/emulated/0/Download/install.zip"
-with open(zip_path, "wb") as f:
-    f.write(r.content)
-
-tmp = "/storage/emulated/0/Download/install_tmp/"
-with zipfile.ZipFile(zip_path, "r") as zf:
-    zf.extractall(tmp)
-
-# ШАГ 4
-log("[4/6] Устанавливаю файлы...")
-os.makedirs(TARGET, exist_ok=True)
-
-for root, dirs, files in os.walk(tmp):
-    for fname in files:
-        if fname.endswith((".py", ".json", ".txt", ".md")):
-            src = os.path.join(root, fname)
-            dst = os.path.join(TARGET, fname)
-            if fname == "config.py" and backup:
-                continue
-            try:
-                with open(src, "r", encoding="utf-8") as fsrc:
-                    content = fsrc.read()
-                with open(dst, "w", encoding="utf-8") as fdst:
-                    fdst.write(content)
-            except:
-                pass
-
-if backup:
-    with open(config_path, "w") as f:
-        f.write(backup)
-
-vcp = os.path.join(TARGET, "voice_config.py")
-if not os.path.exists(vcp):
-    with open(vcp, "w") as f:
-        f.write("# voice_config.py - stub\nfrom config import *\n")
-
-os.makedirs("/storage/emulated/0/Recordings/", exist_ok=True)
-shutil.rmtree(tmp, ignore_errors=True)
-os.remove(zip_path)
-
-# ШАГ 5
-log("[5/6] Запускаю диагностику...")
-diag_path = os.path.join(TARGET, "diagnostics.py")
-if os.path.exists(diag_path):
+def get_remote_version():
     try:
-        subprocess.run([sys.executable, diag_path], timeout=30)
+        import requests as _rv
+        rv = _rv.get(VERSION_URL, timeout=10)
+        if rv.status_code == 200:
+            return rv.text.strip()
     except:
         pass
+    return "?"
 
-# ШАГ 6
-log("[6/6] Готово!")
-log(f"✅ Обновлено до v{REMOTE_VER}! Откройте main.py и нажмите Run.")
+
+def parse_version(v_str):
+    if not v_str:
+        return (0, 0, 0)
+    m = re.match(r'^(\d+)\.(\d+)\.(\d+)', str(v_str).strip())
+    if m:
+        return tuple(map(int, m.groups()))
+    return (0, 0, 0)
+
+
+def download_with_retries(url, max_retries=3):
+    import requests as _r
+    for attempt in range(max_retries):
+        try:
+            log(f"  Попытка {attempt + 1}/{max_retries}...")
+            r = _r.get(url, timeout=30, allow_redirects=True)
+            if r.status_code == 200:
+                return r.content
+            else:
+                log(f"  HTTP {r.status_code}, пробую снова...")
+        except Exception as e:
+            log(f"  Ошибка: {e}")
+        if attempt < max_retries - 1:
+            delay = RETRY_DELAY[min(attempt, len(RETRY_DELAY) - 1)]
+            time.sleep(delay)
+    return None
+
+
+def check_disk_space(path, min_mb):
+    try:
+        stat = shutil.disk_usage(path)
+        free_mb = stat.free / (1024 * 1024)
+        return free_mb >= min_mb
+    except:
+        return False
+
+
+def check_write_permission(path):
+    test_file = os.path.join(path, ".test_write")
+    try:
+        with open(test_file, "w") as f:
+            f.write("1")
+        os.remove(test_file)
+        return True
+    except:
+        return False
+
+
+def check_python_syntax(filepath):
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            code = f.read()
+        compile(code, filepath, "exec")
+        return (True, "")
+    except SyntaxError as e:
+        return (False, f"SyntaxError: {e}")
+    except Exception as e:
+        return (False, f"Ошибка: {e}")
+
+
+def cleanup_crash_remnants():
+    for d in [TARGET_NEW, TARGET_OLD]:
+        if os.path.exists(d):
+            log(f"Очищаю остатки после краша: {d}")
+            shutil.rmtree(d, ignore_errors=True)
+    if os.path.exists(BACKUP_FILE):
+        log(f"Найден backup config.py: {BACKUP_FILE}")
+        config_path = os.path.join(TARGET, "config.py")
+        if os.path.exists(TARGET) and not os.path.exists(config_path):
+            shutil.copy(BACKUP_FILE, config_path)
+            log("config.py восстановлен из backup!")
+            os.remove(BACKUP_FILE)
+
+
+# ============================================================
+# ГЛАВНЫЙ ПРОЦЕСС
+# ============================================================
+def main():
+    global REMOTE_VER
+
+    REMOTE_VER = get_remote_version()
+    local_ver = "?"
+    version_path = os.path.join(TARGET, "version.txt")
+    if os.path.exists(version_path):
+        with open(version_path, "r") as f:
+            local_ver = f.read().strip()
+
+    print("=" * 60)
+    print(f"  УСТАНОВЩИК ОРГАНАЙЗЕРА v{REMOTE_VER}")
+    print(f"  Локальная версия: {local_ver}")
+    print("=" * 60)
+
+    if parse_version(local_ver) >= parse_version(REMOTE_VER) and REMOTE_VER != "?":
+        log(f"Версия уже актуальна ({local_ver}). Обновление не требуется.")
+        sys.exit(0)
+
+    cleanup_crash_remnants()
+
+    config_path = os.path.join(TARGET, "config.py")
+    config_backup_content = None
+
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                config_backup_content = f.read()
+            log("config.py прочитан успешно")
+        except Exception as e:
+            abort(f"Не могу прочитать config.py: {e}", 4)
+    else:
+        log("config.py не найден. После обновления потребуется регистрация.")
+
+    if not check_disk_space("/storage/emulated/0", MIN_FREE_SPACE_MB):
+        abort(f"Недостаточно места (нужно минимум {MIN_FREE_SPACE_MB} МБ).", 4)
+    log(f"Свободного места достаточно (>{MIN_FREE_SPACE_MB} МБ)")
+
+    test_dir = TARGET if os.path.exists(TARGET) else "/storage/emulated/0"
+    if not check_write_permission(test_dir):
+        abort("Нет прав на запись в целевую папку.", 4)
+    log("Права на запись есть")
+
+    log("Скачиваю новую версию...")
+    zip_content = download_with_retries(GITHUB_URL, max_retries=RETRY_COUNT)
+    if zip_content is None:
+        abort("Не удалось скачать архив после 3 попыток.", 4)
+
+    zip_path = os.path.join(BACKUP_DIR, "organizer_update.zip")
+    with open(zip_path, "wb") as f:
+        f.write(zip_content)
+
+    if not zipfile.is_zipfile(zip_path):
+        os.remove(zip_path)
+        abort("Скачанный файл повреждён (не является ZIP-архивом).", 4)
+    log("Архив скачан и проверен")
+
+    if config_backup_content:
+        try:
+            with open(BACKUP_FILE, "w", encoding="utf-8") as f:
+                f.write(config_backup_content)
+            log(f"Backup config.py сохранён: {BACKUP_FILE}")
+        except Exception as e:
+            abort(f"Не удалось сохранить backup config.py: {e}", 4)
+
+    tmp_extract = os.path.join(BACKUP_DIR, "organizer_extract")
+    if os.path.exists(tmp_extract):
+        shutil.rmtree(tmp_extract, ignore_errors=True)
+
+    with zipfile.ZipFile(zip_path, "r") as zf:
+        names = zf.namelist()
+        root_in_zip = names[0].split("/")[0] if names else ""
+        zf.extractall(tmp_extract)
+
+    src_dir = os.path.join(tmp_extract, root_in_zip)
+
+    if os.path.exists(TARGET_NEW):
+        shutil.rmtree(TARGET_NEW, ignore_errors=True)
+    os.makedirs(TARGET_NEW, exist_ok=True)
+
+    for fname in os.listdir(src_dir):
+        src = os.path.join(src_dir, fname)
+        dst = os.path.join(TARGET_NEW, fname)
+        if os.path.isdir(src):
+            continue
+        if fname == "config.py" and config_backup_content:
+            continue
+        try:
+            shutil.copy2(src, dst)
+        except Exception as e:
+            shutil.rmtree(TARGET_NEW, ignore_errors=True)
+            abort(f"Ошибка копирования {fname}: {e}", 4)
+
+    new_main = os.path.join(TARGET_NEW, "main.py")
+    if os.path.exists(new_main):
+        ok, err = check_python_syntax(new_main)
+        if not ok:
+            shutil.rmtree(TARGET_NEW, ignore_errors=True)
+            abort(f"Новая версия main.py содержит ошибку:\n  {err}", 4)
+        log("main.py проверен (синтаксис корректен)")
+
+    if config_backup_content:
+        dst_config = os.path.join(TARGET_NEW, "config.py")
+        try:
+            with open(dst_config, "w", encoding="utf-8") as f:
+                f.write(config_backup_content)
+            log("config.py восстановлен из backup")
+            with open(dst_config, "r", encoding="utf-8") as f:
+                restored = f.read()
+            if restored != config_backup_content:
+                shutil.rmtree(TARGET_NEW, ignore_errors=True)
+                abort("Ошибка восстановления config.py — содержимое не совпадает.", 4)
+            if os.path.exists(BACKUP_FILE):
+                os.remove(BACKUP_FILE)
+                log("Backup-файл удалён (восстановление успешно)")
+        except Exception as e:
+            shutil.rmtree(TARGET_NEW, ignore_errors=True)
+            abort(f"Не удалось восстановить config.py: {e}", 4)
+
+    if os.path.exists(TARGET):
+        if os.path.exists(TARGET_OLD):
+            shutil.rmtree(TARGET_OLD, ignore_errors=True)
+        os.rename(TARGET, TARGET_OLD)
+    os.rename(TARGET_NEW, TARGET)
+    if os.path.exists(TARGET_OLD):
+        shutil.rmtree(TARGET_OLD, ignore_errors=True)
+    log("Файлы установлены")
+
+    if REMOTE_VER and REMOTE_VER != "?":
+        try:
+            version_path = os.path.join(TARGET, "version.txt")
+            with open(version_path, "w") as f:
+                f.write(REMOTE_VER)
+            log(f"version.txt обновлён: {REMOTE_VER}")
+        except Exception as e:
+            log(f"Не удалось обновить version.txt: {e}")
+
+    if os.path.exists(tmp_extract):
+        shutil.rmtree(tmp_extract, ignore_errors=True)
+    if os.path.exists(zip_path):
+        os.remove(zip_path)
+
+    print("\n" + "=" * 60)
+    log(f"ОБНОВЛЕНО ДО v{REMOTE_VER}!")
+    log("Запустите main.py и нажмите Run.")
+    print("=" * 60)
+
+
+if __name__ == "__main__":
+    main()
