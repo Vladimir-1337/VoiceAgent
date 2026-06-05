@@ -13,6 +13,14 @@ import io
 import contextlib
 NULL_OUT = io.StringIO()
 
+# --- Чтение версии из файла ---
+def get_version():
+    try:
+        with open("/storage/emulated/0/VoiceAgent/version.txt", "r") as f:
+            return f.read().strip()
+    except:
+        return "?.?.?"
+
 # --- Импорты (с защитой от отсутствия) ---
 try:
     from voice_sender import send_latest_recording
@@ -67,7 +75,7 @@ def clear_screen():
 # ======================================================================
 def print_header(section):
     print("=" * 50)
-    print(f"  ОРГАНАЙЗЕР v1.0.48 > {section}")
+    print(f"  ОРГАНАЙЗЕР v{get_version()} > {section}")
     print("=" * 50)
 
 
@@ -824,7 +832,7 @@ def main():
     print("")
 
     import voice_config
-    LOCAL_VERSION = "1.0.48"
+    LOCAL_VERSION = get_version()
     
     # [1] Папки
     print("  [1] Папки...", end="", flush=True)
@@ -1035,6 +1043,14 @@ import io
 import contextlib
 NULL_OUT = io.StringIO()
 
+# --- Чтение версии из файла ---
+def get_version():
+    try:
+        with open("/storage/emulated/0/VoiceAgent/version.txt", "r") as f:
+            return f.read().strip()
+    except:
+        return "?.?.?"
+
 # --- Импорты (с защитой от отсутствия) ---
 try:
     from voice_sender import send_latest_recording
@@ -1089,7 +1105,7 @@ def clear_screen():
 # ======================================================================
 def print_header(section):
     print("=" * 50)
-    print(f"  ОРГАНАЙЗЕР v1.0.48 > {section}")
+    print(f"  ОРГАНАЙЗЕР v{get_version()} > {section}")
     print("=" * 50)
 
 
@@ -1846,7 +1862,7 @@ def main():
     print("")
 
     import voice_config
-    LOCAL_VERSION = "1.0.48"
+    LOCAL_VERSION = get_version()
     
     # [1] Папки
     print("  [1] Папки...", end="", flush=True)
