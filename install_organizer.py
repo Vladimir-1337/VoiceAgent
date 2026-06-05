@@ -1,4 +1,4 @@
-# install_organizer.py — УСТАНОВЩИК ОРГАНАЙЗЕРА (v2.0 — с защитами от катастроф)
+# install_organizer.py — УСТАНОВЩИК ОРГАНАЙЗЕРА (v2.1 — с телеметрией)
 import sys
 import os
 import subprocess
@@ -6,6 +6,7 @@ import time
 import shutil
 import zipfile
 import re
+import json
 
 # ============================================================
 # КОНФИГУРАЦИЯ
@@ -18,10 +19,69 @@ BACKUP_FILE = os.path.join(BACKUP_DIR, "voiceagent_config_backup.py")
 GITHUB_URL = "https://github.com/Vladimir-1337/VoiceAgent/archive/refs/heads/main.zip"
 VERSION_URL = "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt"
 MIN_FREE_SPACE_MB = 50
+VPS_URL = "http://157.22.202.232:8200/report"
 
 REMOTE_VER = "?"
 RETRY_COUNT = 3
 RETRY_DELAY = [1, 2, 4]
+
+
+# ============================================================
+# ТЕЛЕМЕТРИЯ
+# ============================================================
+def collect_device_info():
+    """Собирает информацию об устройстве. Возвращает dict."""
+    info = {}
+
+    # Модель, производитель, Android, SDK
+    for prop, key in [
+        ("ro.product.model", "model"),
+        ("ro.product.manufacturer", "manufacturer"),
+        ("ro.build.version.release", "android"),
+        ("ro.build.version.sdk", "sdk"),
+    ]:
+        try:
+            info[key] = subprocess.check_output(["getprop", prop], timeout=3).decode().strip()
+        except:
+            try:
+                with open("/system/build.prop", "r") as f:
+                    content = f.read()
+                match = re.search(rf'{prop.split(".")[-1]}=(.+)', content)
+                info[key] = match.group(1).strip() if match else "?"
+            except:
+                info[key] = "?"
+
+    # Память
+    try:
+        stat = shutil.disk_usage("/storage/emulated/0")
+        info["free_space_mb"] = stat.free // (1024 ** 2)
+        info["total_space_mb"] = stat.total // (1024 ** 2)
+    except:
+        info["free_space_mb"] = -1
+        info["total_space_mb"] = -1
+
+    # Python
+    info["python"] = sys.version.split()[0]
+
+    # Время начала установки
+    info["install_start"] = time.time()
+    info["timestamp"] = time.strftime("%Y-%m-%d %H:%M:%S")
+
+    return info
+
+
+def send_telemetry(event, info, reason=None):
+    """Тихо отправляет телеметрию. НЕ прерывает установку."""
+    info["event"] = event
+    if reason:
+        info["reason"] = reason
+    try:
+        import requests as _r
+        _r.post(VPS_URL,
+                data=json.dumps(info, ensure_ascii=False).encode("utf-8"),
+                timeout=3)
+    except:
+        pass  # Тихо — VPS недоступен, установка продолжается
 
 
 # ============================================================
@@ -127,6 +187,9 @@ def cleanup_crash_remnants():
 def main():
     global REMOTE_VER
 
+    # --- ТЕЛЕМЕТРИЯ: СТАРТ ---
+    device_info = collect_device_info()
+
     REMOTE_VER = get_remote_version()
     local_ver = "?"
     version_path = os.path.join(TARGET, "version.txt")
@@ -137,6 +200,7 @@ def main():
     print("=" * 60)
     print(f"  УСТАНОВЩИК ОРГАНАЙЗЕРА v{REMOTE_VER}")
     print(f"  Локальная версия: {local_ver}")
+    print(f"  Устройство: {device_info.get('model', '?')} (Android {device_info.get('android', '?')})")
     print("=" * 60)
 
     if parse_version(local_ver) >= parse_version(REMOTE_VER) and REMOTE_VER != "?":
@@ -154,22 +218,26 @@ def main():
                 config_backup_content = f.read()
             log("config.py прочитан успешно")
         except Exception as e:
+            send_telemetry("install_fail", device_info, f"config.py не читается: {e}")
             abort(f"Не могу прочитать config.py: {e}", 4)
     else:
         log("config.py не найден. После обновления потребуется регистрация.")
 
     if not check_disk_space("/storage/emulated/0", MIN_FREE_SPACE_MB):
+        send_telemetry("install_fail", device_info, "недостаточно места")
         abort(f"Недостаточно места (нужно минимум {MIN_FREE_SPACE_MB} МБ).", 4)
     log(f"Свободного места достаточно (>{MIN_FREE_SPACE_MB} МБ)")
 
     test_dir = TARGET if os.path.exists(TARGET) else "/storage/emulated/0"
     if not check_write_permission(test_dir):
+        send_telemetry("install_fail", device_info, "нет прав на запись")
         abort("Нет прав на запись в целевую папку.", 4)
     log("Права на запись есть")
 
     log("Скачиваю новую версию...")
     zip_content = download_with_retries(GITHUB_URL, max_retries=RETRY_COUNT)
     if zip_content is None:
+        send_telemetry("install_fail", device_info, "не удалось скачать архив после 3 попыток")
         abort("Не удалось скачать архив после 3 попыток.", 4)
 
     zip_path = os.path.join(BACKUP_DIR, "organizer_update.zip")
@@ -178,6 +246,7 @@ def main():
 
     if not zipfile.is_zipfile(zip_path):
         os.remove(zip_path)
+        send_telemetry("install_fail", device_info, "битый ZIP")
         abort("Скачанный файл повреждён (не является ZIP-архивом).", 4)
     log("Архив скачан и проверен")
 
@@ -187,6 +256,7 @@ def main():
                 f.write(config_backup_content)
             log(f"Backup config.py сохранён: {BACKUP_FILE}")
         except Exception as e:
+            send_telemetry("install_fail", device_info, f"не удалось сохранить backup: {e}")
             abort(f"Не удалось сохранить backup config.py: {e}", 4)
 
     tmp_extract = os.path.join(BACKUP_DIR, "organizer_extract")
@@ -215,6 +285,7 @@ def main():
             shutil.copy2(src, dst)
         except Exception as e:
             shutil.rmtree(TARGET_NEW, ignore_errors=True)
+            send_telemetry("install_fail", device_info, f"ошибка копирования {fname}: {e}")
             abort(f"Ошибка копирования {fname}: {e}", 4)
 
     new_main = os.path.join(TARGET_NEW, "main.py")
@@ -222,6 +293,7 @@ def main():
         ok, err = check_python_syntax(new_main)
         if not ok:
             shutil.rmtree(TARGET_NEW, ignore_errors=True)
+            send_telemetry("install_fail", device_info, f"SyntaxError в main.py: {err}")
             abort(f"Новая версия main.py содержит ошибку:\n  {err}", 4)
         log("main.py проверен (синтаксис корректен)")
 
@@ -235,12 +307,14 @@ def main():
                 restored = f.read()
             if restored != config_backup_content:
                 shutil.rmtree(TARGET_NEW, ignore_errors=True)
+                send_telemetry("install_fail", device_info, "ошибка восстановления config.py — содержимое не совпадает")
                 abort("Ошибка восстановления config.py — содержимое не совпадает.", 4)
             if os.path.exists(BACKUP_FILE):
                 os.remove(BACKUP_FILE)
                 log("Backup-файл удалён (восстановление успешно)")
         except Exception as e:
             shutil.rmtree(TARGET_NEW, ignore_errors=True)
+            send_telemetry("install_fail", device_info, f"не удалось восстановить config.py: {e}")
             abort(f"Не удалось восстановить config.py: {e}", 4)
 
     if os.path.exists(TARGET):
@@ -265,6 +339,11 @@ def main():
         shutil.rmtree(tmp_extract, ignore_errors=True)
     if os.path.exists(zip_path):
         os.remove(zip_path)
+
+    # --- ТЕЛЕМЕТРИЯ: УСПЕХ ---
+    device_info["install_time_sec"] = round(time.time() - device_info["install_start"], 1)
+    device_info["version"] = REMOTE_VER
+    send_telemetry("install_success", device_info)
 
     print("\n" + "=" * 60)
     log(f"ОБНОВЛЕНО ДО v{REMOTE_VER}!")
