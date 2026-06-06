@@ -1,4 +1,4 @@
-# install_organizer.py — УСТАНОВЩИК ОРГАНАЙЗЕРА (v2.1 — с телеметрией)
+# install_organizer.py — УСТАНОВЩИК ОРГАНАЙЗЕРА (v2.2 — с автообновлением себя)
 import sys
 import os
 import subprocess
@@ -18,6 +18,8 @@ BACKUP_DIR = "/storage/emulated/0/Download"
 BACKUP_FILE = os.path.join(BACKUP_DIR, "voiceagent_config_backup.py")
 GITHUB_URL = "https://github.com/Vladimir-1337/VoiceAgent/archive/refs/heads/main.zip"
 VERSION_URL = "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt"
+INSTALLER_URL = "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/install_organizer.py"
+INSTALLER_VERSION = "2.2"
 MIN_FREE_SPACE_MB = 50
 VPS_URL = "http://157.22.202.232:8200/report"
 
@@ -27,13 +29,74 @@ RETRY_DELAY = [1, 2, 4]
 
 
 # ============================================================
+# АВТООБНОВЛЕНИЕ УСТАНОВЩИКА
+# ============================================================
+def check_installer_update():
+    """Проверяет, есть ли новая версия установщика на GitHub.
+    Если есть — скачивает, заменяет себя и перезапускает."""
+    try:
+        import requests as _r
+        r = _r.get(INSTALLER_URL, timeout=10)
+        if r.status_code != 200:
+            return  # GitHub недоступен — работаем как есть
+
+        remote_code = r.text
+
+        # Ищем версию установщика в коде (v2.X)
+        match = re.search(r'INSTALLER_VERSION\s*=\s*"([^"]+)"', remote_code)
+        if not match:
+            return  # Не можем определить версию — работаем как есть
+
+        remote_installer_ver = match.group(1)
+
+        # Сравниваем версии (2.2 > 2.1 > 2.0)
+        if parse_installer_version(remote_installer_ver) <= parse_installer_version(INSTALLER_VERSION):
+            return  # Версия актуальна
+
+        # Есть новая версия — обновляем себя
+        print(f"\n  🆕 Новая версия установщика: v{remote_installer_ver}")
+        print("  ⏳ Обновляю установщик...")
+
+        # Сохраняем текущий установщик как backup
+        current_path = os.path.abspath(__file__)
+        backup_path = current_path + ".backup"
+
+        try:
+            shutil.copy2(current_path, backup_path)
+        except:
+            pass  # Не критично
+
+        # Записываем новый код
+        with open(current_path, "w", encoding="utf-8") as f:
+            f.write(remote_code)
+
+        print(f"  ✅ Установщик обновлён до v{remote_installer_ver}")
+        print("  🔄 Перезапускаю...\n")
+
+        # Перезапуск
+        os.execv(sys.executable, [sys.executable] + sys.argv)
+
+    except Exception as e:
+        # Тихо — продолжаем работу со старой версией
+        pass
+
+
+def parse_installer_version(v_str):
+    """Парсит версию установщика (2.2, 2.10 и т.д.)."""
+    try:
+        parts = v_str.split(".")
+        return tuple(int(p) for p in parts)
+    except:
+        return (0, 0)
+
+
+# ============================================================
 # ТЕЛЕМЕТРИЯ
 # ============================================================
 def collect_device_info():
     """Собирает информацию об устройстве. Возвращает dict."""
     info = {}
 
-    # Модель, производитель, Android, SDK
     for prop, key in [
         ("ro.product.model", "model"),
         ("ro.product.manufacturer", "manufacturer"),
@@ -51,7 +114,6 @@ def collect_device_info():
             except:
                 info[key] = "?"
 
-    # Память
     try:
         stat = shutil.disk_usage("/storage/emulated/0")
         info["free_space_mb"] = stat.free // (1024 ** 2)
@@ -60,12 +122,10 @@ def collect_device_info():
         info["free_space_mb"] = -1
         info["total_space_mb"] = -1
 
-    # Python
     info["python"] = sys.version.split()[0]
-
-    # Время начала установки
     info["install_start"] = time.time()
     info["timestamp"] = time.strftime("%Y-%m-%d %H:%M:%S")
+    info["installer_version"] = INSTALLER_VERSION
 
     return info
 
@@ -81,7 +141,7 @@ def send_telemetry(event, info, reason=None):
                 data=json.dumps(info, ensure_ascii=False).encode("utf-8"),
                 timeout=3)
     except:
-        pass  # Тихо — VPS недоступен, установка продолжается
+        pass
 
 
 # ============================================================
@@ -167,6 +227,19 @@ def check_python_syntax(filepath):
         return (False, f"Ошибка: {e}")
 
 
+def safe_copy_file(src, dst):
+    """Безопасное копирование файла (без метаданных).
+    Если dst существует — удаляет перед копированием."""
+    if os.path.exists(dst):
+        try:
+            os.remove(dst)
+        except:
+            pass
+    with open(src, "rb") as fsrc:
+        with open(dst, "wb") as fdst:
+            fdst.write(fsrc.read())
+
+
 def cleanup_crash_remnants():
     for d in [TARGET_NEW, TARGET_OLD]:
         if os.path.exists(d):
@@ -176,7 +249,7 @@ def cleanup_crash_remnants():
         log(f"Найден backup config.py: {BACKUP_FILE}")
         config_path = os.path.join(TARGET, "config.py")
         if os.path.exists(TARGET) and not os.path.exists(config_path):
-            shutil.copy(BACKUP_FILE, config_path)
+            safe_copy_file(BACKUP_FILE, config_path)
             log("config.py восстановлен из backup!")
             os.remove(BACKUP_FILE)
 
@@ -186,6 +259,9 @@ def cleanup_crash_remnants():
 # ============================================================
 def main():
     global REMOTE_VER
+
+    # --- АВТООБНОВЛЕНИЕ УСТАНОВЩИКА (ПЕРВЫМ ДЕЛОМ!) ---
+    check_installer_update()
 
     # --- ТЕЛЕМЕТРИЯ: СТАРТ ---
     device_info = collect_device_info()
@@ -282,13 +358,7 @@ def main():
         if fname == "config.py" and config_backup_content:
             continue
         try:
-            # Удалить целевой файл если существует (Operation not permitted)
-            if os.path.exists(dst):
-                os.remove(dst)
-            # Копировать содержимое вручную (без метаданных — безопасно для Android)
-            with open(src, "rb") as fsrc:
-                with open(dst, "wb") as fdst:
-                    fdst.write(fsrc.read())
+            safe_copy_file(src, dst)
         except Exception as e:
             shutil.rmtree(TARGET_NEW, ignore_errors=True)
             send_telemetry("install_fail", device_info, f"ошибка копирования {fname}: {e}")
