@@ -282,7 +282,13 @@ def main():
         if fname == "config.py" and config_backup_content:
             continue
         try:
-            shutil.copy2(src, dst)
+            # Удалить целевой файл если существует (Operation not permitted)
+            if os.path.exists(dst):
+                os.remove(dst)
+            # Копировать содержимое вручную (без метаданных — безопасно для Android)
+            with open(src, "rb") as fsrc:
+                with open(dst, "wb") as fdst:
+                    fdst.write(fsrc.read())
         except Exception as e:
             shutil.rmtree(TARGET_NEW, ignore_errors=True)
             send_telemetry("install_fail", device_info, f"ошибка копирования {fname}: {e}")
