@@ -491,8 +491,22 @@ def scan_date(text):
     
     
 # ---------------------------------------------------------------------------
-# Блок C.6: Сканер места — НОВАЯ ВЕРСИЯ
+# Блок C.6: Сканер места — НОВАЯ ВЕРСИЯ (с фиксом типов улиц)
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Блок C.6: Сканер места — НОВАЯ ВЕРСИЯ (фикс: время не ломает поиск места)
+# ---------------------------------------------------------------------------
+
+
+def _result_matches(result, place_word):
+    """Проверяет, что хотя бы одно значимое слово из place_word есть в result."""
+    words = place_word.lower().split()
+    significant = [w for w in words if not w.isdigit() and len(w) > 2]
+    if not significant:
+        significant = [w for w in words if not w.isdigit()] or words
+    return any(w in result.lower() for w in significant)
+
 
 def scan_place(text):
     """
@@ -508,6 +522,10 @@ def scan_place(text):
         pass
 
     print(f"  [SCAN_PLACE] Старт: «{text[:60]}»")
+
+    # ФИКС: Вырезаем время ("в 10:23", "в 10.23"), чтобы не ломало поиск предлога
+    text = re.sub(r'\b(?:в|к|во)\s+\d{1,2}[.:]\d{2}\b', '', text)
+    text = " ".join(text.split())
 
     # Шаг 1: Якорь
     try:
@@ -535,6 +553,22 @@ def scan_place(text):
     place_word = match.group(1)
     start_idx = match.start()
     end_idx = match.end()
+
+    # ФИКС: если place_word — это тип улицы, берём следующее слово как название
+    street_types = [
+        "улице", "улица", "ул", "проспект", "проспекте", "пр",
+        "переулок", "переулке", "бульвар", "бульваре", "шоссе",
+        "площадь", "площади", "набережная", "набережной",
+        "проезд", "проезде", "тупик", "тупике"
+    ]
+    if place_word.lower() in street_types:
+        rest = text[end_idx:].strip()
+        next_match = re.match(r'([А-Яа-яЁёA-Za-z0-9\-]+(?:\s*\d+[а-я]?)?)', rest)
+        if next_match:
+            place_word = next_match.group(1)
+            end_idx += next_match.end()
+            print(f"  [SCAN_PLACE] Тип улицы «{match.group(1)}» → название: «{place_word}»")
+
     clean_text = text[:start_idx] + text[end_idx:]
     clean_text = " ".join(clean_text.split())
 
@@ -548,8 +582,11 @@ def scan_place(text):
         print(f"  [SCAN_PLACE] Маркер/номер → xmlriver")
         result = _xmlriver_search(place_word, city)
         if result:
-            print(f"  [SCAN_PLACE] ✅ xmlriver: {result}")
-            return (result, clean_text)
+            if _result_matches(result, place_word):
+                print(f"  [SCAN_PLACE] ✅ xmlriver: {result}")
+                return (result, clean_text)
+            else:
+                print(f"  [SCAN_PLACE] ⚠️ xmlriver: '{result}' не совпадает с '{place_word}'")
         else:
             print(f"  [SCAN_PLACE] ❌ xmlriver не нашёл")
 
@@ -565,16 +602,22 @@ def scan_place(text):
             print(f"  [SCAN_PLACE] Nominatim не нашёл → xmlriver")
             result = _xmlriver_search(place_word, city)
             if result:
-                print(f"  [SCAN_PLACE] ✅ xmlriver: {result}")
-                return (result, clean_text)
+                if _result_matches(result, place_word):
+                    print(f"  [SCAN_PLACE] ✅ xmlriver: {result}")
+                    return (result, clean_text)
+                else:
+                    print(f"  [SCAN_PLACE] ⚠️ xmlriver: '{result}' не совпадает с '{place_word}'")
     else:
         print(f"  [SCAN_PLACE] Нет цифр")
         if _has_street(place_word):
             print(f"  [SCAN_PLACE] Улица найдена → xmlriver")
             result = _xmlriver_search(place_word, city)
             if result:
-                print(f"  [SCAN_PLACE] ✅ xmlriver: {result}")
-                return (result, clean_text)
+                if _result_matches(result, place_word):
+                    print(f"  [SCAN_PLACE] ✅ xmlriver: {result}")
+                    return (result, clean_text)
+                else:
+                    print(f"  [SCAN_PLACE] ⚠️ xmlriver: '{result}' не совпадает с '{place_word}'")
         else:
             print(f"  [SCAN_PLACE] Улица не найдена → fallback")
 
