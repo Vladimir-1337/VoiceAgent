@@ -165,6 +165,7 @@ def process_new_files():
                 if add_raw_task:
                     add_raw_task(clean_task_text, "не категоризировано")
                 task_result["status"] = "📥 В сырых"
+                task_result["reason"] = "модуль parse_intent недоступен"
                 file_result["tasks"].append(task_result)
                 processed += 1
                 continue
@@ -175,6 +176,7 @@ def process_new_files():
                 if add_raw_task:
                     add_raw_task(clean_task_text, "не категоризировано")
                 task_result["status"] = "📥 В сырых"
+                task_result["reason"] = "не удалось распознать намерение"
                 file_result["tasks"].append(task_result)
                 processed += 1
                 continue
@@ -209,16 +211,24 @@ def process_new_files():
                                     t["exported_at"] = datetime.now().isoformat()
                             save_tasks(tasks)
                 task_result["status"] = "📅 В календаре"
+                task_result["reason"] = "всё заполнено (дата, время, место, название)"
             elif not has_remind and is_valid:
                 if load_tasks and save_tasks:
                     tasks = load_tasks()
                     tasks.append(task)
                     save_tasks(tasks)
                 task_result["status"] = "📋 На подтверждении"
+                task_result["reason"] = "нет слова 'напомни', уточните"
             else:
                 if add_raw_task:
                     add_raw_task(clean_task_text, "не категоризировано")
                 task_result["status"] = "📥 В сырых"
+                # Добавляем причину из missing_fields
+                missing = intent.get("missing_fields", []) if intent else []
+                if missing:
+                    task_result["reason"] = "не хватает: " + ", ".join(missing)
+                else:
+                    task_result["reason"] = "неизвестная причина"
 
             file_result["tasks"].append(task_result)
             processed += 1
@@ -745,6 +755,8 @@ def background_monitor():
                         for task in file_result.get("tasks", []):
                             f.write(f"\n  📝 Задача: «{task['title']}»\n")
                             f.write(f"  📊 Статус: {task['status']}\n")
+                            if task.get("reason"):
+                                f.write(f"  💡 Причина: {task['reason']}\n")
                             if task.get("calendar_uid"):
                                 f.write(f"  📅 UID: {task['calendar_uid']}\n")
 
@@ -1144,22 +1156,9 @@ def main():
 
     clear_screen()
 
-    # Очистить буфер ввода (чтобы случайный Enter не попал в меню)
-    import sys as _sys_buf
-    import select as _sel_buf
-    while _sys_buf.stdin in _sel_buf.select([_sys_buf.stdin], [], [], 0)[0]:
-        _sys_buf.stdin.readline()
-
-    print_header("Запуск")
-    print("  🟢 Мониторинг запущен")
-    print("=" * 50)
-
+    # Запуск фонового монитора ДО меню
     monitor_thread = threading.Thread(target=background_monitor, daemon=True)
     monitor_thread.start()
-
-    # Очистить буфер ввода перед меню
-    while _sys_buf.stdin in _sel_buf.select([_sys_buf.stdin], [], [], 0)[0]:
-        _sys_buf.stdin.readline()
 
     main_menu()
     print("До свидания!")
