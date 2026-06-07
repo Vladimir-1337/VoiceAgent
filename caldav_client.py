@@ -86,12 +86,15 @@ def _build_start_end(task):
 def _build_description(task):
     desc = task.get("description", "").strip()
     slot = task.get("slot", "").strip()
+    place = task.get("place", "").strip()
     parts = []
     if desc:
         parts.append(desc)
+    if place:
+        parts.append(f"📍 {place}")
     if slot:
         parts.append(f"[Слот: {slot}]")
-    return " ".join(parts)
+    return "\n".join(parts)
 
 
 # ---------- ПРАВИЛА ПОВТОРЕНИЯ (daily / weekly) ----------
@@ -141,7 +144,7 @@ def create_event(task):
         print(f"# Ошибка: не удалось собрать start/end")
         return None
     args = {
-        "summary":     task.get("title", ""),
+        "summary":     task.get("title", "") + (f" 📍 {task.get('place', '')}" if task.get("place", "").strip() else ""),
         "start":       start,
         "end":         end,
         "calendarUrl": calendar_url,
