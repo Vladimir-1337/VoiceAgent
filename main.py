@@ -1068,6 +1068,8 @@ def main():
     # [8] Обновления — проверяет GitHub и доступность установщика
     print("  [8] Обновления...", end="", flush=True)
     try:
+        # Сброс кеша для старых Android
+        requests.get("https://raw.githubusercontent.com", timeout=3)
         r_ver = requests.get(
             "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt",
             timeout=5
