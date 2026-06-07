@@ -83,17 +83,16 @@ def print_header(section):
 # ОБРАБОТКА НОВЫХ ФАЙЛОВ
 # ======================================================================
 def process_new_files():
+    """Обрабатывает новые аудиофайлы. Возвращает список результатов."""
     if not os.path.exists(RECORDINGS_DIR):
-        return (0, 0, 0, 0)
+        return []
 
     all_files = glob.glob(os.path.join(RECORDINGS_DIR, "*.m4a"))
     if not all_files:
-        return (0, 0, 0, 0)
+        return []
 
+    results = []
     processed = 0
-    to_calendar = 0
-    to_confirm = 0
-    to_raw = 0
     MAX_PER_CYCLE = 5
 
     from ai_normalizer import ai_normalize
@@ -111,7 +110,12 @@ def process_new_files():
         if not is_new_file(filepath):
             continue
 
-        print(f"\n🎙️ Обрабатываю: {filename}")
+        file_result = {
+            "filename": filename,
+            "text": "",
+            "tasks": [],
+            "errors": []
+        }
 
         text = None
         if send_latest_recording:
@@ -123,7 +127,11 @@ def process_new_files():
                     except OSError:
                         pass
                     mark_file_seen(filepath)
+                    file_result["errors"].append(f"Слишком длинная запись: {error}")
+                    results.append(file_result)
                     continue
+                file_result["errors"].append(error)
+                results.append(file_result)
                 continue
         else:
             text = filename.replace(".m4a", "").replace("_", " ")
@@ -133,9 +141,11 @@ def process_new_files():
                 os.remove(filepath)
             except OSError:
                 pass
+            file_result["errors"].append("Пустой текст после распознавания")
+            results.append(file_result)
             continue
 
-        print(f"   🎤 Распознано: «{text}»")
+        file_result["text"] = text
 
         task_texts = split_tasks(text)
 
@@ -145,10 +155,17 @@ def process_new_files():
 
             clean_task_text = ai_normalize(single_task_text)
 
+            task_result = {
+                "title": clean_task_text[:80],
+                "status": "неизвестно",
+                "calendar_uid": None
+            }
+
             if not parse_intent:
                 if add_raw_task:
                     add_raw_task(clean_task_text, "не категоризировано")
-                to_raw += 1
+                task_result["status"] = "📥 В сырых"
+                file_result["tasks"].append(task_result)
                 processed += 1
                 continue
 
@@ -157,7 +174,8 @@ def process_new_files():
             if intent is None:
                 if add_raw_task:
                     add_raw_task(clean_task_text, "не категоризировано")
-                to_raw += 1
+                task_result["status"] = "📥 В сырых"
+                file_result["tasks"].append(task_result)
                 processed += 1
                 continue
 
@@ -181,6 +199,7 @@ def process_new_files():
                         task["caldav_uid"] = uid
                         task["exported"] = True
                         task["exported_at"] = datetime.now().isoformat()
+                        task_result["calendar_uid"] = uid
                         if load_tasks and save_tasks:
                             tasks = load_tasks()
                             for t in tasks:
@@ -189,18 +208,19 @@ def process_new_files():
                                     t["exported"] = True
                                     t["exported_at"] = datetime.now().isoformat()
                             save_tasks(tasks)
-                to_calendar += 1
+                task_result["status"] = "📅 В календаре"
             elif not has_remind and is_valid:
                 if load_tasks and save_tasks:
                     tasks = load_tasks()
                     tasks.append(task)
                     save_tasks(tasks)
-                to_confirm += 1
+                task_result["status"] = "📋 На подтверждении"
             else:
                 if add_raw_task:
                     add_raw_task(clean_task_text, "не категоризировано")
-                to_raw += 1
+                task_result["status"] = "📥 В сырых"
 
+            file_result["tasks"].append(task_result)
             processed += 1
 
         mark_file_seen(filepath)
@@ -209,7 +229,9 @@ def process_new_files():
         except OSError:
             pass
 
-    return (processed, to_calendar, to_confirm, to_raw)
+        results.append(file_result)
+
+    return results
 
 
 # ======================================================================
@@ -217,6 +239,8 @@ def process_new_files():
 # ======================================================================
 def main_menu():
     """Главное меню. 0 = выход, 5 = мониторинг."""
+    global monitor_running
+
     while True:
         clear_screen()
         print_header("Главное меню")
@@ -231,22 +255,52 @@ def main_menu():
         choice = input("> ").strip()
 
         if choice == "0":
-            global monitor_running
             monitor_running = False
-            return False
+            print("До свидания!")
+            break
 
         elif choice == "1":
-            try:
-                from mode_1 import show_raw_tasks
-                show_raw_tasks()
-            except ImportError:
-                print("  📭 mode_1.py не найден.")
-                input("  Нажмите Enter...")
+            clear_screen()
+            print_header("Сырые задачи")
+            raw_path = "/storage/emulated/0/VoiceAgent/raw_tasks.json"
+            if os.path.exists(raw_path):
+                with open(raw_path, "r", encoding="utf-8") as f:
+                    raw_tasks = json.load(f)
+                if raw_tasks:
+                    for i, task in enumerate(raw_tasks, 1):
+                        print(f"  {i}. {task.get('title', '—')[:80]}")
+                        print(f"     Статус: {task.get('status', '—')}")
+                        print()
+                else:
+                    print("  📭 Сырых задач нет.")
+            else:
+                print("  📭 Сырых задач нет.")
+            print("\n  Нажмите Enter...")
+            input()
 
         elif choice == "2":
-            run_mode_3()
+            clear_screen()
+            print_header("Готовые задачи")
+            ready_path = "/storage/emulated/0/VoiceAgent/ready_tasks.json"
+            if os.path.exists(ready_path):
+                with open(ready_path, "r", encoding="utf-8") as f:
+                    ready_tasks = json.load(f)
+                if ready_tasks:
+                    for i, task in enumerate(ready_tasks, 1):
+                        print(f"  {i}. {task.get('title', '—')[:80]}")
+                        print(f"     Статус: {task.get('status', '—')}")
+                        if task.get('date'):
+                            print(f"     Дата: {task['date']}")
+                        print()
+                else:
+                    print("  📭 Готовых задач нет.")
+            else:
+                print("  📭 Готовых задач нет.")
+            print("\n  Нажмите Enter...")
+            input()
 
         elif choice == "3":
+            from profile import edit_profile
             edit_profile()
 
         elif choice == "4":
@@ -261,13 +315,12 @@ def main_menu():
             print("    📊 Лог мониторинга (monitor.log)")
             print("    📅 События из Яндекс.Календаря")
             print("    📁 Все временные и служебные файлы")
-            
             print("  ⚠️ Аудиозаписи HE удаляются.")
             print("-" * 50)
             print("  1 = Да, удалить всё")
             print("  0 = Нет, отмена")
             confirm = input("> ").strip()
-            
+
             if confirm == "1":
                 try:
                     from task_data import load_tasks
@@ -279,7 +332,7 @@ def main_menu():
                             delete_event(uid)
                 except ImportError:
                     pass
-                
+
                 for fname in ["ready_tasks.json", "raw_tasks.json", "progress.json",
                               "feedback.json", "raw_tasks_backup.json",
                               "current_analysis.json", "dialog_progress.json",
@@ -287,7 +340,7 @@ def main_menu():
                     fpath = os.path.join("/storage/emulated/0/VoiceAgent", fname)
                     if os.path.exists(fpath):
                         os.remove(fpath)
-                
+
                 profile_path = "/storage/emulated/0/VoiceAgent/user_profile.json"
                 empty_profile = {
                     "city": "", "places": [], "people": [],
@@ -295,11 +348,13 @@ def main_menu():
                 }
                 with open(profile_path, "w", encoding="utf-8") as f:
                     json.dump(empty_profile, f, indent=2)
-                
+
                 print("  ✅ ВСЕ данные удалены, включая якоря.")
                 print("  🎙️ Аудиозаписи сохранены.")
             else:
                 print("  ❌ Очистка отменена.")
+            print("\n  Нажмите Enter...")
+            input()
 
         elif choice == "5":
             import time as _time
@@ -325,18 +380,18 @@ def main_menu():
             while True:
                 if _sys.stdin in select.select([_sys.stdin], [], [], 0)[0]:
                     key = _sys.stdin.readline().strip()
-                    
+
                     if key == "":
                         break
-                    
+
                     elif key == "1" and all_tasks:
                         task_index = max(0, task_index - 1)
                         _show_task_detail(all_tasks, task_index, log_file)
-                    
+
                     elif key == "2" and all_tasks:
                         task_index = min(len(all_tasks) - 1, task_index + 1)
                         _show_task_detail(all_tasks, task_index, log_file)
-                    
+
                     elif key == "3":
                         if os.path.exists(log_file):
                             with open(log_file, "w") as f:
@@ -357,67 +412,66 @@ def main_menu():
                         print("  🗑️ 3 — очистить лог")
                         print("  ℹ️  Enter — выход")
                         print("-" * 50)
-                    
-                    elif key == "0" and all_tasks and task_index >= 0:
+
+                    elif key == "0":
                         clear_screen()
                         print_header("Жалоба на задачу")
-                        print(f"  📋 Задача: {all_tasks[task_index]['title'][:60]}")
-                        print(f"  📊 Статус: {all_tasks[task_index].get('status', '—')}")
+
+                        if all_tasks and task_index >= 0:
+                            print(f"  📋 Задача: {all_tasks[task_index]['title'][:60]}")
+                            print(f"  📊 Статус: {all_tasks[task_index].get('status', '—')}")
+                            print("-" * 50)
+                            print("  Проблема в ЭТОЙ задаче?")
+                            print("    1 — Да, проблема в этой задаче")
+                            print("    2 — Нет, проблема в другой задаче")
+                            print("    0 — Отмена")
+                            confirm = input("  > ").strip()
+
+                            if confirm == "1":
+                                _report_problem(all_tasks, task_index, log_file)
+                            elif confirm == "2":
+                                print("\n  Используйте кнопки 1/2 для выбора другой задачи.")
+                        else:
+                            print("  ⚠️ Нет задач для выбора.")
+                            print("  Отправить общую жалобу?")
+                            print("    1 — Да")
+                            print("    0 — Отмена")
+                            confirm = input("  > ").strip()
+                            if confirm == "1":
+                                _report_problem([], -1, log_file)
+
+                        print("\n  Нажмите Enter...")
+                        input()
+                        clear_screen()
+                        print_header("Мониторинг · Реальное время")
+                        print("  ✅ Мониторинг активен")
+                        print("  🔄 Обновление каждые 3 сек")
                         print("-" * 50)
-                        print("  Проблема в ЭТОЙ задаче?")
-                        print("    1 — Да, проблема в этой задаче")
-                        print("    2 — Нет, проблема в другой задаче")
-                        print("    0 — Отмена")
-                        confirm = input("  > ").strip()
-                        
-                        if confirm == "1":
-                            _report_problem(all_tasks, task_index, log_file)
-                            print("\n  Нажмите Enter для продолжения...")
-                            input()
-                            clear_screen()
-                            print_header("Мониторинг · Реальное время")
-                            print("  ✅ Мониторинг активен")
-                            print("  🔄 Обновление каждые 3 сек")
-                            print("-" * 50)
-                            print("  ◄ 1 / 2 ►  — переключение между задачами")
-                            print("  📝 0 — пожаловаться на выбранную задачу")
-                            print("  🗑️ 3 — очистить лог")
-                            print("  ℹ️  Enter — выход")
-                            print("-" * 50)
-                        elif confirm == "2":
-                            print("\n  Используйте кнопки 1/2 для выбора другой задачи.")
-                            print("  Нажмите Enter...")
-                            input()
-                            clear_screen()
-                            print_header("Мониторинг · Реальное время")
-                            print("  ✅ Мониторинг активен")
-                            print("  🔄 Обновление каждые 3 сек")
-                            print("-" * 50)
-                            print("  ◄ 1 / 2 ►  — переключение между задачами")
-                            print("  📝 0 — пожаловаться на выбранную задачу")
-                            print("  🗑️ 3 — очистить лог")
-                            print("  ℹ️  Enter — выход")
-                            print("-" * 50)
-                
+                        print("  ◄ 1 / 2 ►  — переключение между задачами")
+                        print("  📝 0 — пожаловаться на выбранную задачу")
+                        print("  🗑️ 3 — очистить лог")
+                        print("  ℹ️  Enter — выход")
+                        print("-" * 50)
+
                 current_size = os.path.getsize(log_file) if os.path.exists(log_file) else 0
-                
+
                 if current_size > last_size:
                     try:
                         with open(log_file, "r", encoding="utf-8") as f:
-                            lines = f.readlines()
-                        
-                        all_tasks = _extract_tasks_from_log(lines)
-                        
+                            log_lines = f.readlines()
+
+                        all_tasks = _extract_tasks_from_log(log_lines)
+
                         if all_tasks and task_index == -1:
                             task_index = len(all_tasks) - 1
-                        
-                        recent = lines[-15:] if len(lines) > 15 else lines
-                        
+
+                        recent = log_lines[-15:] if len(log_lines) > 15 else log_lines
+
                         print("\n" * 2)
                         print("-" * 50)
-                        print(f"  📋 ЛОГ · {len(lines)} записей всего · Задач: {len(all_tasks)}")
+                        print(f"  📋 ЛОГ · {len(log_lines)} записей всего · Задач: {len(all_tasks)}")
                         print("-" * 50)
-                        
+
                         has_recent = False
                         for line in recent:
                             stripped = line.rstrip()
@@ -435,26 +489,27 @@ def main_menu():
                                     print(f"  🗑️ {stripped}")
                                 else:
                                     print(f"  📋 {stripped}")
-                        
+
                         if not has_recent:
-                            pass  # спам убран
-                        
+                            pass
+
                         print("-" * 50)
                         if all_tasks and task_index >= 0:
                             print(f"  📌 Задача {task_index+1}/{len(all_tasks)}: {all_tasks[task_index]['title'][:50]}")
                         print("  ◄ 1 / 2 ►  |  0 — пожаловаться  |  3 — очистить лог  |  Enter — выход")
-                        
+
                     except:
                         pass
                     last_size = current_size
                 else:
-                    pass  # спам убран
-                
+                    pass
+
                 _time.sleep(3)
 
         else:
             print("  ❌ Неверный выбор.")
-            input("  Нажмите Enter...")
+            print("  Нажмите Enter...")
+            input()
 
 
 # ======================================================================
@@ -537,19 +592,32 @@ def _show_task_detail(tasks, index, log_file):
 
 
 def _report_problem(tasks, index, log_file):
-    """Формирует жалобу и silently отправляет через VPS (до 5 попыток)."""
+    """Формирует жалобу и silently отправляет через VPS (до 5 попыток).
+    Работает даже если задач нет (пустой лог / лог очищен)."""
     from datetime import datetime
-    
-    task = tasks[index] if tasks and index < len(tasks) else {"title": "неизвестно", "status": "неизвестно"}
+
+    # Безопасно получаем задачу (или заглушку если задач нет)
+    if tasks and index >= 0 and index < len(tasks):
+        task = tasks[index]
+    else:
+        task = {"title": "задача не выбрана", "status": "—"}
+
     timestamp = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
-    
-    print("\n  📝 Опишите проблему (одна строка):")
-    comment = input("  > ").strip()
-    if not comment:
-        comment = "(без комментария)"
-    
+
+    print("\n  📝 Опишите проблему (Enter — пустая строка для отправки):")
+
+    # Многострочный ввод
+    comment_lines = []
+    while True:
+        line = input()
+        if line == "":
+            break
+        comment_lines.append(line)
+
+    comment = "\n".join(comment_lines) if comment_lines else "(без комментария)"
+
     print("  ⏳ Отправляю...", end="", flush=True)
-    
+
     report_lines = []
     report_lines.append(f"=== ОТЧЁТ О ПРОБЛЕМЕ ===")
     report_lines.append(f"Дата: {timestamp}")
@@ -559,20 +627,51 @@ def _report_problem(tasks, index, log_file):
     if task.get('error'):
         report_lines.append(f"Ошибка: {task['error']}")
     report_lines.append("")
+    report_lines.append(f"Всего задач в логе: {len(tasks) if tasks else 0}")
+    report_lines.append("")
+
+    # Системная информация
+    report_lines.append("--- СИСТЕМНАЯ ИНФОРМАЦИЯ ---")
+    try:
+        import subprocess
+        model = subprocess.check_output(["getprop", "ro.product.model"], timeout=3).decode().strip()
+        android = subprocess.check_output(["getprop", "ro.build.version.release"], timeout=3).decode().strip()
+        report_lines.append(f"Модель: {model}")
+        report_lines.append(f"Android: {android}")
+    except:
+        report_lines.append("Модель: неизвестно")
+        report_lines.append("Android: неизвестно")
+    try:
+        import sys
+        report_lines.append(f"Python: {sys.version.split()[0]}")
+    except:
+        pass
+    try:
+        with open("/storage/emulated/0/VoiceAgent/version.txt", "r") as f:
+            report_lines.append(f"Версия: {f.read().strip()}")
+    except:
+        pass
+    report_lines.append("")
+
+    # Последние записи лога
     report_lines.append("--- ПОСЛЕДНИЕ ЗАПИСИ ЛОГА ---")
-    
     if os.path.exists(log_file):
         with open(log_file, "r", encoding="utf-8") as f:
             log_content = f.readlines()
-        report_lines.extend(log_content[-30:])
-    
+        if log_content:
+            report_lines.extend(log_content[-30:])
+        else:
+            report_lines.append("(лог пуст)")
+    else:
+        report_lines.append("(файл лога не существует)")
+
     report_text = "\n".join(report_lines)
-    
+
     # Сохраняем локально
     report_file = "/storage/emulated/0/VoiceAgent/user_report.txt"
     with open(report_file, "w", encoding="utf-8") as f:
         f.write(report_text)
-    
+
     # Пытаемся отправить до 5 раз
     sent = False
     for attempt in range(5):
@@ -587,14 +686,13 @@ def _report_problem(tasks, index, log_file):
         except:
             pass
         time.sleep(1)
-    
+
     if sent:
         print("\r  ✅ Отправлено!                              ")
     else:
         print("\r  📎 Сохранено локально (сервер недоступен)   ")
-    
-    print(f"  📁 user_report.txt")
 
+    print(f"  📁 user_report.txt")
 
 
 
@@ -604,33 +702,57 @@ def _report_problem(tasks, index, log_file):
 # ФОНОВЫЙ МОНИТОРИНГ
 # ======================================================================
 def background_monitor():
+    """Фоновый мониторинг: обрабатывает аудио и пишет результаты в лог.
+    ВЕСЬ вывод process_new_files() глушится в /dev/null — чистая консоль."""
     log_file = "/storage/emulated/0/VoiceAgent/monitor.log"
     cycle_count = 0
 
     from datetime import datetime
-    timestamp = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
-    with open(log_file, "a", encoding="utf-8") as f:
-        f.write(f"[{timestamp}] 🟢 Фоновый мониторинг запущен\n")
+
+    # Пишем старт только один раз (если лог пустой)
+    try:
+        if not os.path.exists(log_file) or os.path.getsize(log_file) == 0:
+            timestamp = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
+            with open(log_file, "a", encoding="utf-8") as f:
+                f.write(f"[{timestamp}] 🟢 Фоновый мониторинг запущен\n")
+    except:
+        pass
 
     while monitor_running:
         try:
-            capture = io.StringIO()
-            with contextlib.redirect_stdout(capture):
-                processed, to_calendar, to_confirm, to_raw = process_new_files()
-            output = capture.getvalue()
+            # ГЛУШИМ ВЕСЬ ВЫВОД process_new_files() В /dev/null
+            with open(os.devnull, 'w') as devnull:
+                with contextlib.redirect_stdout(devnull):
+                    results = process_new_files()
 
-            if output.strip():
+            if results:
                 timestamp = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
-                try:
-                    with open(log_file, "a", encoding="utf-8") as f:
-                        f.write(f"[{timestamp}] === НОВЫЙ ЦИКЛ ===\n")
-                        for line in output.strip().split("\n"):
-                            if line.strip():
-                                f.write(f"   {line.strip()}\n")
-                        f.write(f"[{timestamp}] 📊 Итого: {processed} (📅={to_calendar} 📋={to_confirm} 📥={to_raw})\n\n")
-                except:
-                    pass
+                with open(log_file, "a", encoding="utf-8") as f:
+                    f.write(f"\n{'─' * 50}\n")
+                    f.write(f"[{timestamp}] 📁 НОВЫЙ ЦИКЛ — {len(results)} файл(ов)\n")
+                    f.write(f"{'─' * 50}\n")
 
+                    for file_result in results:
+                        f.write(f"\n  🎙️ Файл: {file_result['filename']}\n")
+
+                        if file_result.get("errors"):
+                            for err in file_result["errors"]:
+                                f.write(f"  ❌ Ошибка: {err}\n")
+
+                        if file_result.get("text"):
+                            f.write(f"  🎤 Распознано: «{file_result['text']}»\n")
+
+                        for task in file_result.get("tasks", []):
+                            f.write(f"\n  📝 Задача: «{task['title']}»\n")
+                            f.write(f"  📊 Статус: {task['status']}\n")
+                            if task.get("calendar_uid"):
+                                f.write(f"  📅 UID: {task['calendar_uid']}\n")
+
+                    f.write(f"\n{'─' * 50}\n")
+                    f.write(f"[{timestamp}] ✅ Итого задач: {sum(len(r.get('tasks', [])) for r in results)}\n")
+                    f.write(f"{'─' * 50}\n\n")
+
+                # Очистка старых записей (каждые 10 циклов)
                 cycle_count += 1
                 if cycle_count >= 10:
                     cycle_count = 0
@@ -642,13 +764,15 @@ def background_monitor():
                                 f.writelines(all_lines[-500:])
                     except:
                         pass
+
         except Exception as e:
             try:
                 timestamp = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
                 with open(log_file, "a", encoding="utf-8") as f:
-                    f.write(f"[{timestamp}] ⚠️ Ошибка: {e}\n")
+                    f.write(f"[{timestamp}] ⚠️ Ошибка монитора: {e}\n")
             except:
                 pass
+
         time.sleep(3)
 
 
