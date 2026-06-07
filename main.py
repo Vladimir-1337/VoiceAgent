@@ -1143,12 +1143,23 @@ def main():
             return
 
     clear_screen()
+
+    # Очистить буфер ввода (чтобы случайный Enter не попал в меню)
+    import sys as _sys_buf
+    import select as _sel_buf
+    while _sys_buf.stdin in _sel_buf.select([_sys_buf.stdin], [], [], 0)[0]:
+        _sys_buf.stdin.readline()
+
     print_header("Запуск")
     print("  🟢 Мониторинг запущен")
     print("=" * 50)
 
     monitor_thread = threading.Thread(target=background_monitor, daemon=True)
     monitor_thread.start()
+
+    # Очистить буфер ввода перед меню
+    while _sys_buf.stdin in _sel_buf.select([_sys_buf.stdin], [], [], 0)[0]:
+        _sys_buf.stdin.readline()
 
     main_menu()
     print("До свидания!")
