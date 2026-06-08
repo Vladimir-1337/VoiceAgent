@@ -25,13 +25,16 @@ def get_audio_duration(filepath):
     except:
         return 0
 
-def send_latest_recording():
-    """Отправляет последний .m4a файл на VPS. До 3 попыток. Возвращает (text, error)."""
-    m4a_files = glob.glob(os.path.join(RECORDINGS_DIR, "*.m4a"))
-    if not m4a_files:
-        return (None, "Нет файлов .m4a в папке Recordings")
-    
-    latest_file = max(m4a_files, key=os.path.getmtime)
+def send_latest_recording(filepath=None):
+    """Отправляет указанный .m4a на VPS. Если не указан — последний. До 3 попыток. Возвращает (text, error)."""
+    if filepath:
+        latest_file = filepath
+    else:
+        m4a_files = glob.glob(os.path.join(RECORDINGS_DIR, "*.m4a"))
+        if not m4a_files:
+            return (None, "Нет файлов .m4a в папке Recordings")
+        
+        latest_file = max(m4a_files, key=os.path.getmtime)
     
     duration = get_audio_duration(latest_file)
     if duration > MAX_AUDIO_DURATION:
