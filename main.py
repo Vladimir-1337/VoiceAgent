@@ -119,7 +119,7 @@ def process_new_files():
 
         text = None
         if send_latest_recording:
-            text, error = send_latest_recording()
+            text, error = send_latest_recording(filepath)
             if error:
                 if "длинная" in error.lower() or "длитель" in error.lower():
                     try:
