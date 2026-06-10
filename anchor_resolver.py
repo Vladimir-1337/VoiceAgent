@@ -103,8 +103,36 @@ def resolve_place(text):
     found_key = None
     found_address = None
     
+    # Разбиваем текст на слова для нечёткого поиска
+    text_words = text_lower.split()
+
     for key, address in anchors.items():
+        matched = False
+
+        # 1. Точное совпадение ключа в тексте
         if key in text_lower:
+            matched = True
+
+        # 2. Нечёткий поиск: любое слово текста содержится в ключе или наоборот
+        if not matched:
+            for word in text_words:
+                word_clean = word.strip(",.!?;:-()[]{}")
+                if len(word_clean) >= 3:  # минимум 3 буквы для совпадения
+                    # Слово из текста содержится в ключе
+                    if word_clean in key:
+                        matched = True
+                        break
+                    # Ключ содержится в слове из текста
+                    if key in word_clean:
+                        matched = True
+                        break
+                    # Нечёткое: первые 3 буквы совпадают (для склонений)
+                    if len(word_clean) >= 4 and len(key) >= 4:
+                        if word_clean[:3] == key[:3]:
+                            matched = True
+                            break
+
+        if matched:
             # Выбираем самое длинное совпадение
             if found_key is None or len(key) > len(found_key):
                 found_key = key
