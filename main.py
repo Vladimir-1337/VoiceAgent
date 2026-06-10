@@ -263,6 +263,8 @@ def main_menu():
         print("=" * 50)
 
         choice = input("> ").strip()
+        if not choice:
+            continue
 
         if choice == "0":
             monitor_running = False
@@ -270,44 +272,15 @@ def main_menu():
             break
 
         elif choice == "1":
-            clear_screen()
-            print_header("Сырые задачи")
-            raw_path = "/storage/emulated/0/VoiceAgent/raw_tasks.json"
-            if os.path.exists(raw_path):
-                with open(raw_path, "r", encoding="utf-8") as f:
-                    raw_tasks = json.load(f)
-                if raw_tasks:
-                    for i, task in enumerate(raw_tasks, 1):
-                        print(f"  {i}. {task.get('title', '—')[:80]}")
-                        print(f"     Статус: {task.get('status', '—')}")
-                        print()
-                else:
-                    print("  📭 Сырых задач нет.")
-            else:
-                print("  📭 Сырых задач нет.")
-            print("\n  Нажмите Enter...")
-            input()
+            try:
+                from mode_1 import show_raw_tasks
+                show_raw_tasks()
+            except ImportError:
+                print("  📭 mode_1.py не найден.")
+                input("  Нажмите Enter...")
 
         elif choice == "2":
-            clear_screen()
-            print_header("Готовые задачи")
-            ready_path = "/storage/emulated/0/VoiceAgent/ready_tasks.json"
-            if os.path.exists(ready_path):
-                with open(ready_path, "r", encoding="utf-8") as f:
-                    ready_tasks = json.load(f)
-                if ready_tasks:
-                    for i, task in enumerate(ready_tasks, 1):
-                        print(f"  {i}. {task.get('title', '—')[:80]}")
-                        print(f"     Статус: {task.get('status', '—')}")
-                        if task.get('date'):
-                            print(f"     Дата: {task['date']}")
-                        print()
-                else:
-                    print("  📭 Готовых задач нет.")
-            else:
-                print("  📭 Готовых задач нет.")
-            print("\n  Нажмите Enter...")
-            input()
+            run_mode_3()
 
         elif choice == "3":
             from profile import edit_profile
@@ -375,6 +348,36 @@ def main_menu():
 
             clear_screen()
             print_header("Мониторинг · Реальное время")
+
+            # --- ПРОГРЕСС-БАР: ждём пока все новые файлы обработаются ---
+            import glob as _gl
+            all_files = _gl.glob("/storage/emulated/0/Recordings/*.m4a")
+            if all_files:
+                from task_data import is_new_file
+                new_files = [f for f in all_files if is_new_file(f)]
+                total = len(new_files)
+                if total > 0:
+                    processed = 0
+                    waited = 0
+                    while processed < total and waited < 60:
+                        if os.path.exists(log_file):
+                            with open(log_file, "r") as lf:
+                                processed = lf.read().count("🎙️ Файл:")
+                        if processed > total:
+                            processed = total
+                        pct = int(processed / total * 100) if total > 0 else 100
+                        bar_len = 20
+                        filled = int(bar_len * pct / 100)
+                        bar = "█" * filled + "░" * (bar_len - filled)
+                        print(f"\r  ⏳ [{bar}] {pct}% ({processed}/{total})", end="", flush=True)
+                        if processed >= total:
+                            break
+                        import time as _tw
+                        _tw.sleep(0.5)
+                        waited += 0.5
+                    print()
+                    print("  ✅ Все записи обработаны!")
+                    print()
             print("  ✅ Мониторинг активен")
             print("  🔄 Обновление каждые 3 сек")
             print("-" * 50)
@@ -1032,16 +1035,25 @@ def main():
     
     # [5] Интернет + замер времени
     print("  [5] Интернет...", end="", flush=True)
+    internet_sites = ["https://ya.ru", "https://google.com"]
     for attempt in range(5):
         try:
             t_start = _time.time()
-            requests.get("https://google.com", timeout=3)
-            t_elapsed = _time.time() - t_start
-            print(f"\r  ✅ Интернет ({t_elapsed:.1f} сек, попытка {attempt+1})        ")
-            break
+            ok = False
+            for site in internet_sites:
+                try:
+                    requests.get(site, timeout=3)
+                    t_elapsed = _time.time() - t_start
+                    ok = True
+                    break
+                except:
+                    continue
+            if ok:
+                print(f"\r  ✅ Интернет ({t_elapsed:.1f} сек, попытка {attempt+1})        ")
+                break
         except:
             if attempt == 4:
-                print(f"\r  ⚠️ Нет интернета                    ")
+                print(f"\r  ⚠️ Нет интернета (попыток: {attempt+1}/5)     ")
                 print("\n  Проверьте интернет и перезапустите.")
                 input("\n  Нажмите Enter...")
                 return
@@ -1077,36 +1089,45 @@ def main():
             else:
                 _time.sleep(1)
     
-    # [8] Обновления — проверяет GitHub и доступность установщика
+    # [8] Обновления — проверяет GitHub (до 3 попыток)
     print("  [8] Обновления...", end="", flush=True)
-    try:
-        # Сброс кеша для старых Android
-        requests.get("https://raw.githubusercontent.com", timeout=3)
-        r_ver = requests.get(
-            "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt",
-            timeout=5
-        )
-        if r_ver.status_code == 200:
-            remote = r_ver.text.strip()
-            if remote == LOCAL_VERSION:
-                print(f"\r  ✅ Версия {LOCAL_VERSION} — последняя      ")
-            else:
-                # Проверяем, доступен ли установщик
-                try:
-                    r_inst = requests.head(
-                        "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/install_organizer.py",
-                        timeout=5
-                    )
-                    if r_inst.status_code == 200:
+    for upd_attempt in range(3):
+        try:
+            if upd_attempt == 0:
+                requests.get("https://raw.githubusercontent.com", timeout=3)
+            r_ver = requests.get(
+                "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt",
+                timeout=5
+            )
+            if r_ver.status_code == 200:
+                remote = r_ver.text.strip()
+                if remote == LOCAL_VERSION:
+                    print(f"\r  ✅ Версия {LOCAL_VERSION} — последняя      ")
+                else:
+                    try:
+                        r_inst = requests.head(
+                            "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/install_organizer.py",
+                            timeout=5
+                        )
+                        if r_inst.status_code == 200:
+                            print(f"\r  🆕 Новая версия: {remote}. Запустите установщик.   ")
+                        else:
+                            print(f"\r  🆕 Новая версия: {remote}. Установщик недоступен.  ")
+                    except:
                         print(f"\r  🆕 Новая версия: {remote}. Запустите установщик.   ")
-                    else:
-                        print(f"\r  🆕 Новая версия: {remote}. Установщик недоступен.  ")
-                except:
-                    print(f"\r  🆕 Новая версия: {remote}. Запустите установщик.   ")
-        else:
-            print(f"\r  ⚠️ Не удалось проверить обновления       ")
-    except:
-        print(f"\r  ⚠️ Не удалось проверить обновления       ")
+                break
+            else:
+                if upd_attempt == 2:
+                    print(f"\r  ⚠️ Не удалось проверить обновления (3 попытки)")
+                else:
+                    import time as _ut
+                    _ut.sleep(1)
+        except:
+            if upd_attempt == 2:
+                print(f"\r  ⚠️ Не удалось проверить обновления (3 попытки)")
+            else:
+                import time as _ut
+                _ut.sleep(1)
     
     # [9] JSON-файлы
     print("  [9] JSON-файлы...", end="", flush=True)
@@ -1143,6 +1164,21 @@ def main():
     )
     print(f"  [10] {'⚠️ Нужна регистрация' if need_register else '✅ Регистрация пройдена'}")
 
+    # [11] Проверка последних записей
+    print("  [11] Записи...", end="", flush=True)
+    import glob as _gl
+    recordings = _gl.glob("/storage/emulated/0/Recordings/*.m4a")
+    if recordings:
+        total = len(recordings)
+        # Показываем прогресс (без реальной обработки — только подсчёт)
+        for i in range(1, total + 1):
+            print(f"\r  [11] Записи: [{i}/{total}]                    ", end="", flush=True)
+            import time as _t
+            _t.sleep(0.05)
+        print(f"\r  ✅ Записей в папке: {total} шт.                ")
+    else:
+        print(f"\r  📭 Нет записей в Recordings                    ")
+
     print("\n" + "=" * 50)
     print("  Все проверки завершены.")
     print("  Нажмите Enter для продолжения...")
@@ -1156,8 +1192,13 @@ def main():
 
     clear_screen()
 
-    # Запуск фонового монитора ДО меню
-    monitor_thread = threading.Thread(target=background_monitor, daemon=True)
+    # Запуск фонового монитора с задержкой (чтобы меню появилось сразу)
+    def _delayed_monitor():
+        import time as _tt
+        _tt.sleep(2)
+        background_monitor()
+
+    monitor_thread = threading.Thread(target=_delayed_monitor, daemon=True)
     monitor_thread.start()
 
     main_menu()
