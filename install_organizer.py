@@ -310,14 +310,15 @@ def main():
         abort("Нет прав на запись в целевую папку.", 4)
     log("Права на запись есть")
 
-    # Установка зависимостей
-    log("Устанавливаю библиотеки...")
+    # Установка requests (нужен для скачивания)
+    log("Устанавливаю requests...")
     try:
         import pip
-        pip.main(["install", "-r", os.path.join(TARGET, "requirements.txt"), "--quiet"])
-        log("Библиотеки установлены")
+        pip.main(["install", "requests", "--quiet"])
+        import requests as _r
+        log("requests установлен")
     except:
-        log("⚠️ pip не найден — библиотеки уже должны быть в системе")
+        log("⚠️ pip не найден, пробую продолжить...")
 
     log("Скачиваю новую версию...")
     zip_content = download_with_retries(GITHUB_URL, max_retries=RETRY_COUNT)
