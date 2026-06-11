@@ -19,7 +19,7 @@ BACKUP_FILE = os.path.join(BACKUP_DIR, "voiceagent_config_backup.py")
 GITHUB_URL = "https://github.com/Vladimir-1337/VoiceAgent/archive/refs/heads/main.zip"
 VERSION_URL = "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/version.txt"
 INSTALLER_URL = "https://raw.githubusercontent.com/Vladimir-1337/VoiceAgent/main/install_organizer.py"
-INSTALLER_VERSION = "2.2"
+INSTALLER_VERSION = "2.3"
 MIN_FREE_SPACE_MB = 50
 VPS_URL = "http://157.22.202.232:8200/report"
 
