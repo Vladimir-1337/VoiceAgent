@@ -38,3 +38,13 @@ REQUEST_TIMEOUT = 30
 # ========== ЯНДЕКС SEARCH API ==========
 YANDEX_SEARCH_API_KEY = ""
 YANDEX_FOLDER_ID = ""
+
+# AI-агенты и поиск адресов
+
+# ========== AI-АГЕНТЫ (FAST VDS) ==========
+# Токены на сервере, клиент знает только URL
+AI_PRIMARY_URL = "http://157.22.202.232:8102/ai/chat"
+AI_FALLBACK_URL = "http://157.22.202.232:8101/ai/chat"
+
+# ========== ПОИСК АДРЕСОВ (FAST VDS) ==========
+GEOCODE_URL = "http://157.22.202.232:8103/geocode"
