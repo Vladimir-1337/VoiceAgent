@@ -698,16 +698,10 @@ def _xmlriver_search(full_text, city):
         import xml.etree.ElementTree as ET
         from collections import Counter
 
-        USER = "20826"
-        KEY = "8e4f11bb7912d7b3bbf35ed58a1b5345406e3611"
-
-        url = "http://xmlriver.com/search_yandex/xml"
+                
+        url = "http://157.22.202.232:8103/geocode"
         params = {
-            "user": USER,
-            "key": KEY,
-            "query": f"{full_text} {city} адрес",
-            "lr": "959",
-            "groupby": "attr=d.mode=deep.groups-on-page=3.docs-in-group=3"
+            "query": f"{full_text} {city} адрес"
         }
         r = _req.get(url, params=params, timeout=20)
         root = ET.fromstring(r.text)
