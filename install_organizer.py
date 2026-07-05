@@ -313,12 +313,11 @@ def main():
     # Установка requests (нужен для скачивания)
     log("Устанавливаю requests...")
     try:
-        import pip
-        pip.main(["install", "requests", "--quiet"])
+        subprocess.run([sys.executable, "-m", "pip", "install", "requests", "--quiet"], capture_output=True)
         import requests as _r
         log("requests установлен")
     except:
-        log("⚠️ pip не найден, пробую продолжить...")
+        log("⚠️ requests уже установлен или pip недоступен")
 
     log("Скачиваю новую версию...")
     zip_content = download_with_retries(GITHUB_URL, max_retries=RETRY_COUNT)
