@@ -22,8 +22,8 @@ SERVER_URL = "http://157.22.202.232:5000/voice"
 
 # ========== ЯНДЕКС КАЛЕНДАРЬ ==========
 # Впишите свои данные ниже
-YANDEX_LOGIN = "введите_логин@yandex.ru"
-YANDEX_APP_PASSWORD = "введите_пароль_приложения"
+YANDEX_LOGIN = "vovagubnov1337@yandex.ru"
+YANDEX_APP_PASSWORD = "frkhfprkskhpexvk"
 CALDAV_URL = "https://caldav.yandex.ru"
 
 # ========== НАСТРОЙКИ УВЕДОМЛЕНИЙ ==========
@@ -33,7 +33,7 @@ DEFAULT_REMINDER_MINUTES = 0
 SPEECH_LANGUAGE = "ru-RU"
 
 # ========== ПРОЧИЕ НАСТРОЙКИ ==========
-REQUEST_TIMEOUT = 30
+REQUEST_TIMEOUT = 119
 
 # ========== ЯНДЕКС SEARCH API ==========
 YANDEX_SEARCH_API_KEY = ""
